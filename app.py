@@ -130,6 +130,12 @@ with st.sidebar.expander("Advanced Parameters"):
 st.sidebar.subheader("Environment Configuration")
 custom_env_params = st.sidebar.checkbox("Customize Environment Parameters", False)
 
+# Initialize default ranges that will be used if custom_env_params is False
+temp_range = (18, 28)
+light_range = (500, 1500)
+water_range = (60, 85)
+radiation_range = (0, 30)
+
 if custom_env_params:
     temp_range = st.sidebar.slider("Temperature Range (°C)", 10, 40, (18, 28), 1)
     light_range = st.sidebar.slider("Light Intensity Range (μmol/m²/s)", 100, 2000, (500, 1500), 50)
