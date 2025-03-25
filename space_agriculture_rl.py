@@ -44,6 +44,9 @@ class SpaceAgricultureEnv:
         self.action_space = SimpleSpace((5,))
         self.observation_space = SimpleSpace((12,))
         
+        # Add disease detection variables
+        self.disease_reward_modifier = 1.0  # Default: no disease detected (multiplier for reward)
+        
         # Define default optimal ranges
         default_ranges = {
             'temperature': (20, 25),
@@ -197,6 +200,13 @@ class SpaceAgricultureEnv:
         if self.state['growth_stage'] == 'fruiting' and self.state['fruit_count'] > self.previous_fruit_count:
             fruit_diff = self.state['fruit_count'] - self.previous_fruit_count
             reward += fruit_diff * 2
+        
+        # Apply disease detection modifier to reward
+        # This penalizes the agent more for unhealthy plants or rewards proper disease management
+        reward = reward * self.disease_reward_modifier
+        
+        # Prevent extreme negative rewards that could destabilize learning
+        reward = max(reward, -10.0)  # Cap at -10.0 to avoid excessively negative rewards
             
         return reward
     
@@ -399,6 +409,7 @@ class SpaceAgricultureEnv:
         self.previous_height = self.state['height']
         self.previous_fruit_count = 0
         self.last_action = np.zeros(5)
+        self.disease_reward_modifier = 1.0  # Reset disease detection modifier
         
         # Add some initial randomness
         self.state['temperature'] += np.random.uniform(-2, 2)
@@ -447,3 +458,33 @@ class SpaceAgricultureEnv:
     def close(self):
         """Clean up resources"""
         pass
+        
+    def update_disease_modifier(self, diagnosis_results):
+        """
+        Update disease reward modifier based on plant disease detection results
+        
+        Args:
+            diagnosis_results: Dictionary with disease detection results containing:
+                - has_disease: Boolean indicating disease presence
+                - severity: Float from 0.0 to 1.0 indicating disease severity
+                - confidence: Float from 0.0 to 1.0 indicating diagnosis confidence
+                
+        Returns:
+            Updated disease_reward_modifier value
+        """
+        # Default no change if diagnosis is not confident
+        if 'confidence' in diagnosis_results and diagnosis_results['confidence'] < 0.5:
+            return self.disease_reward_modifier
+            
+        # Set the modifier based on disease presence and severity
+        if 'has_disease' in diagnosis_results and diagnosis_results['has_disease']:
+            # Diseases reduce rewards based on severity
+            severity = diagnosis_results.get('severity', 0.5)  # Default to medium severity
+            # Calculate modifier: 1.0 (no disease) to 0.2 (severe disease)
+            self.disease_reward_modifier = max(0.2, 1.0 - (severity * 0.8))
+            logger.info(f"Disease detected with severity {severity:.2f}. Reward modifier set to {self.disease_reward_modifier:.2f}")
+        else:
+            # No disease, normal rewards
+            self.disease_reward_modifier = 1.0
+            
+        return self.disease_reward_modifier
