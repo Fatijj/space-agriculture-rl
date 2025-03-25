@@ -1,0 +1,703 @@
+# Reinforcement Learning for Space Agriculture Growth Optimization
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from tensorflow.keras.layers import Dense, Input
+from tensorflow.keras.models import Model
+import gymnasium as gym
+from gymnasium import spaces
+import matplotlib.pyplot as plt
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    filename='space_agri_rl.log')
+logger = logging.getLogger('SpaceAgriRL')
+
+class SpaceAgricultureEnv(gym.Env):
+    """Custom Environment for Space Agriculture that follows gym interface"""
+    
+    def __init__(self, plant_data, species='Dwarf Wheat'):
+        super(SpaceAgricultureEnv, self).__init__()
+        
+        # Filter data for specific species
+        self.plant_data = plant_data[plant_data['species'] == species].copy()
+        self.species = species
+        
+        # Define action space (adjust temperature, light, water, nutrients)
+        # Each has a range from -1.0 (decrease) to 1.0 (increase)
+        self.action_space = spaces.Box(
+            low=np.array([-1.0, -1.0, -1.0, -1.0, -1.0]),  # temp, light, water, radiation_shield, nutrients
+            high=np.array([1.0, 1.0, 1.0, 1.0, 1.0]),
+            dtype=np.float32
+        )
+        
+        # Define observation space (current environmental parameters + plant metrics)
+        # [temp, light, water, radiation, CO2, O2, humidity, N, P, K, height, health]
+        self.observation_space = spaces.Box(
+            low=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+            high=np.array([50, 2000, 100, 100, 2000, 30, 100, 100, 100, 100, 100, 1.0]),
+            dtype=np.float32
+        )
+        
+        # Define optimal ranges for the species
+        self.optimal_ranges = {
+            'Dwarf Wheat': {
+                'temperature': (20, 25),
+                'light_intensity': (800, 1200),
+                'water_content': (60, 80),
+                'radiation_level': (0, 10),
+                'nutrient_mix': (70, 90)  # overall nutrient level
+            },
+            'Cherry Tomato': {
+                'temperature': (22, 28),
+                'light_intensity': (1000, 1600),
+                'water_content': (65, 85),
+                'radiation_level': (0, 8),
+                'nutrient_mix': (75, 95)
+            },
+            'Lettuce': {
+                'temperature': (18, 24),
+                'light_intensity': (500, 900),
+                'water_content': (70, 90),
+                'radiation_level': (0, 5),
+                'nutrient_mix': (65, 85)
+            },
+            'Space Potato': {
+                'temperature': (15, 22),
+                'light_intensity': (700, 1100),
+                'water_content': (60, 80),
+                'radiation_level': (0, 15),
+                'nutrient_mix': (60, 80)
+            }
+        }.get(species, {
+            'temperature': (20, 25),
+            'light_intensity': (800, 1200),
+            'water_content': (60, 80),
+            'radiation_level': (0, 10),
+            'nutrient_mix': (70, 90)
+        })
+        
+        # State variables
+        self.reset()
+        
+    def _get_observation(self):
+        """Return the current observation state"""
+        return np.array([
+            self.state['temperature'],
+            self.state['light_intensity'],
+            self.state['water_content'],
+            self.state['radiation_level'],
+            self.state['co2_level'],
+            self.state['o2_level'],
+            self.state['humidity'],
+            self.state['nitrogen_level'],
+            self.state['phosphorus_level'],
+            self.state['potassium_level'],
+            self.state['height'],
+            self.state['health_score']
+        ], dtype=np.float32)
+    
+    def _calculate_reward(self):
+        """Calculate reward based on how close parameters are to optimal and health score improvement"""
+        reward = 0
+        
+        # Reward for being in optimal ranges
+        temp_range = self.optimal_ranges['temperature']
+        if temp_range[0] <= self.state['temperature'] <= temp_range[1]:
+            reward += 1
+        else:
+            dist = min(abs(self.state['temperature'] - temp_range[0]), 
+                       abs(self.state['temperature'] - temp_range[1]))
+            reward -= dist / 10  # Penalize based on distance from optimal range
+            
+        light_range = self.optimal_ranges['light_intensity']
+        if light_range[0] <= self.state['light_intensity'] <= light_range[1]:
+            reward += 1
+        else:
+            dist = min(abs(self.state['light_intensity'] - light_range[0]), 
+                       abs(self.state['light_intensity'] - light_range[1]))
+            reward -= dist / 200
+            
+        water_range = self.optimal_ranges['water_content']
+        if water_range[0] <= self.state['water_content'] <= water_range[1]:
+            reward += 1
+        else:
+            dist = min(abs(self.state['water_content'] - water_range[0]), 
+                       abs(self.state['water_content'] - water_range[1]))
+            reward -= dist / 10
+            
+        radiation_range = self.optimal_ranges['radiation_level']
+        if radiation_range[0] <= self.state['radiation_level'] <= radiation_range[1]:
+            reward += 1
+        else:
+            dist = min(abs(self.state['radiation_level'] - radiation_range[0]), 
+                       abs(self.state['radiation_level'] - radiation_range[1]))
+            reward -= dist / 5
+            
+        # Reward for health improvement
+        health_diff = self.state['health_score'] - self.previous_health
+        reward += health_diff * 10  # Significant reward for health improvement
+        
+        # Additional reward for height growth if in vegetative or flowering stage
+        if self.state['growth_stage'] in ['vegetative', 'flowering']:
+            height_diff = self.state['height'] - self.previous_height
+            if height_diff > 0:
+                reward += height_diff / 2
+                
+        # Penalize excessive adjustments (to promote stability)
+        if np.abs(self.last_action).sum() > 2.0:
+            reward -= 0.5
+            
+        # Big reward for successful fruit production in fruiting stage
+        if self.state['growth_stage'] == 'fruiting' and self.state['fruit_count'] > self.previous_fruit_count:
+            fruit_diff = self.state['fruit_count'] - self.previous_fruit_count
+            reward += fruit_diff * 2
+            
+        return reward
+    
+    def step(self, action):
+        """Execute one time step within the environment"""
+        self.last_action = action
+        self.steps_taken += 1
+        
+        # Store previous values to calculate changes
+        self.previous_health = self.state['health_score']
+        self.previous_height = self.state['height']
+        self.previous_fruit_count = self.state['fruit_count']
+        
+        # Apply action adjustments (scaled)
+        temp_adj = action[0] * 2.0  # +/- 2 degrees C
+        light_adj = action[1] * 200.0  # +/- 200 μmol/m²/s
+        water_adj = action[2] * 10.0  # +/- 10% water content
+        radiation_shield_adj = action[3] * 5.0  # +/- 5 units of shielding
+        nutrient_adj = action[4] * 5.0  # +/- 5% nutrient levels
+        
+        # Update state based on adjustments
+        self.state['temperature'] = np.clip(self.state['temperature'] + temp_adj, 10, 40)
+        self.state['light_intensity'] = np.clip(self.state['light_intensity'] + light_adj, 100, 2000)
+        self.state['water_content'] = np.clip(self.state['water_content'] + water_adj, 10, 100)
+        
+        # Radiation shield reduces radiation
+        radiation_reduction = radiation_shield_adj * 2 if radiation_shield_adj > 0 else 0
+        self.state['radiation_level'] = np.clip(self.state['radiation_level'] - radiation_reduction, 0, 100)
+        
+        # Update nutrient levels
+        self.state['nitrogen_level'] = np.clip(self.state['nitrogen_level'] + nutrient_adj, 20, 100)
+        self.state['phosphorus_level'] = np.clip(self.state['phosphorus_level'] + nutrient_adj, 20, 100)
+        self.state['potassium_level'] = np.clip(self.state['potassium_level'] + nutrient_adj, 20, 100)
+        
+        # Calculate average nutrient level
+        avg_nutrient = (self.state['nitrogen_level'] + 
+                        self.state['phosphorus_level'] + 
+                        self.state['potassium_level']) / 3
+        
+        # Simulate random environmental fluctuations
+        self.state['co2_level'] += np.random.normal(0, 20)
+        self.state['co2_level'] = np.clip(self.state['co2_level'], 200, 2000)
+        
+        self.state['o2_level'] += np.random.normal(0, 0.5)
+        self.state['o2_level'] = np.clip(self.state['o2_level'], 15, 25)
+        
+        self.state['humidity'] += np.random.normal(0, 2)
+        self.state['humidity'] = np.clip(self.state['humidity'], 30, 90)
+        
+        # Update plant health based on environmental conditions
+        temp_opt = self._calculate_optimality(
+            self.state['temperature'], 
+            self.optimal_ranges['temperature'][0],
+            self.optimal_ranges['temperature'][1]
+        )
+        
+        light_opt = self._calculate_optimality(
+            self.state['light_intensity'], 
+            self.optimal_ranges['light_intensity'][0],
+            self.optimal_ranges['light_intensity'][1]
+        )
+        
+        water_opt = self._calculate_optimality(
+            self.state['water_content'], 
+            self.optimal_ranges['water_content'][0],
+            self.optimal_ranges['water_content'][1]
+        )
+        
+        radiation_opt = self._calculate_optimality(
+            self.state['radiation_level'], 
+            self.optimal_ranges['radiation_level'][0],
+            self.optimal_ranges['radiation_level'][1],
+            inverse=True  # Lower radiation is better
+        )
+        
+        nutrient_opt = self._calculate_optimality(
+            avg_nutrient, 
+            self.optimal_ranges['nutrient_mix'][0],
+            self.optimal_ranges['nutrient_mix'][1]
+        )
+        
+        # Calculate new health score (weighted average of optimality scores)
+        new_health = (
+            0.25 * temp_opt + 
+            0.25 * light_opt + 
+            0.20 * water_opt + 
+            0.15 * radiation_opt + 
+            0.15 * nutrient_opt
+        )
+        
+        # Add some randomness to health (e.g., pests, diseases)
+        random_factor = np.random.normal(0, 0.05)
+        new_health = np.clip(new_health + random_factor, 0.0, 1.0)
+        
+        # Smooth health changes (health changes gradually)
+        self.state['health_score'] = 0.7 * self.state['health_score'] + 0.3 * new_health
+        
+        # Update growth metrics based on health
+        if self.state['health_score'] > 0.7:
+            # Good health, normal growth
+            self.state['height'] += np.random.uniform(0.1, 0.5) * self.state['health_score']
+            
+            # Update growth stage based on height and time
+            if self.steps_taken > 10 and self.state['height'] > 5:
+                self.state['growth_stage'] = 'vegetative'
+            if self.steps_taken > 20 and self.state['height'] > 10:
+                self.state['growth_stage'] = 'flowering'
+            if self.steps_taken > 30 and self.state['health_score'] > 0.6:
+                self.state['growth_stage'] = 'fruiting'
+                
+            # Update fruit count in fruiting stage
+            if self.state['growth_stage'] == 'fruiting':
+                # Random chance to add fruits based on health
+                if np.random.random() < self.state['health_score'] * 0.3:
+                    self.state['fruit_count'] += 1
+        else:
+            # Poor health, minimal growth
+            self.state['height'] += np.random.uniform(0, 0.1)
+        
+        # Calculate reward
+        reward = self._calculate_reward()
+        
+        # Check if episode is done
+        done = (self.steps_taken >= self.max_steps or 
+                self.state['health_score'] < 0.2 or  # Plant died
+                (self.state['growth_stage'] == 'fruiting' and self.steps_taken > 40))  # Harvest time
+        
+        # Return step information
+        return self._get_observation(), reward, done, False, {"state": self.state}
+    
+    def _calculate_optimality(self, value, min_optimal, max_optimal, inverse=False):
+        """Calculate how optimal a value is (1.0 = perfect, 0.0 = terrible)"""
+        if min_optimal <= value <= max_optimal:
+            return 1.0
+        
+        # Calculate distance from optimal range
+        dist_min = abs(value - min_optimal) if value < min_optimal else 0
+        dist_max = abs(value - max_optimal) if value > max_optimal else 0
+        dist = max(dist_min, dist_max)
+        
+        # Calculate optimality (inverse quadratic)
+        range_width = max_optimal - min_optimal
+        optimality = 1.0 - min(1.0, (dist / range_width) ** 2)
+        
+        if inverse:
+            # For parameters where lower is better beyond the optimal range
+            if value < min_optimal:
+                return 1.0
+            elif value > max_optimal:
+                return optimality
+        
+        return optimality
+    
+    def reset(self, seed=None, options=None):
+        """Reset the environment to initial state"""
+        super().reset(seed=seed)
+        
+        # Get a random plant from dataset as starting point
+        if len(self.plant_data) > 0:
+            random_idx = np.random.randint(0, len(self.plant_data))
+            random_plant = self.plant_data.iloc[random_idx]
+            
+            self.state = {
+                'temperature': random_plant['temperature'],
+                'light_intensity': random_plant['light_intensity'],
+                'water_content': random_plant['water_content'],
+                'radiation_level': random_plant['radiation_level'],
+                'co2_level': random_plant['co2_level'],
+                'o2_level': random_plant['o2_level'],
+                'humidity': random_plant['humidity'],
+                'nitrogen_level': random_plant['nitrogen_level'],
+                'phosphorus_level': random_plant['phosphorus_level'],
+                'potassium_level': random_plant['potassium_level'],
+                'height': random_plant['height'],
+                'growth_stage': random_plant['growth_stage'],
+                'health_score': random_plant['health_score'],
+                'fruit_count': 0
+            }
+        else:
+            # If no data available, use defaults
+            self.state = {
+                'temperature': 22.0,
+                'light_intensity': 1000.0,
+                'water_content': 70.0,
+                'radiation_level': 5.0,
+                'co2_level': 800.0,
+                'o2_level': 21.0,
+                'humidity': 60.0,
+                'nitrogen_level': 80.0,
+                'phosphorus_level': 80.0,
+                'potassium_level': 80.0,
+                'height': 1.0,
+                'growth_stage': 'seedling',
+                'health_score': 0.9,
+                'fruit_count': 0
+            }
+            
+        self.previous_health = self.state['health_score']
+        self.previous_height = self.state['height']
+        self.previous_fruit_count = 0
+        self.steps_taken = 0
+        self.max_steps = 50  # Maximum episode length
+        self.last_action = np.zeros(5)
+        
+        return self._get_observation(), {"state": self.state}
+    
+    def render(self):
+        """Render the environment (not implemented)"""
+        pass
+
+
+class PPOAgent:
+    """Proximal Policy Optimization agent for space agriculture"""
+    
+    def __init__(self, state_dim, action_dim, action_bound_high):
+        self.state_dim = state_dim
+        self.action_dim = action_dim
+        self.action_bound_high = action_bound_high
+        
+        # Hyperparameters
+        self.gamma = 0.99  # Discount factor
+        self.clip_ratio = 0.2  # PPO clip ratio
+        self.policy_lr = 0.0003
+        self.value_lr = 0.001
+        self.train_epochs = 10
+        self.batch_size = 64
+        
+        # Initialize actor and critic networks
+        self.actor = self._build_actor()
+        self.critic = self._build_critic()
+        
+        # Training buffers
+        self.states_buffer = []
+        self.actions_buffer = []
+        self.rewards_buffer = []
+        self.next_states_buffer = []
+        self.dones_buffer = []
+        self.log_probs_buffer = []
+        
+    def _build_actor(self):
+        """Build policy network (actor)"""
+        inputs = Input(shape=(self.state_dim,))
+        x = Dense(128, activation='relu')(inputs)
+        x = Dense(64, activation='relu')(x)
+        
+        # Output mean and standard deviation for each action
+        mu = Dense(self.action_dim, activation='tanh')(x)  # Use tanh to bound in [-1, 1]
+        sigma = Dense(self.action_dim, activation='softplus')(x) + 1e-5
+        
+        # Create model
+        model = Model(inputs=inputs, outputs=[mu, sigma])
+        
+        return model
+    
+    def _build_critic(self):
+        """Build value network (critic)"""
+        inputs = Input(shape=(self.state_dim,))
+        x = Dense(128, activation='relu')(inputs)
+        x = Dense(64, activation='relu')(x)
+        value = Dense(1, activation=None)(x)
+        
+        model = Model(inputs=inputs, outputs=value)
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.value_lr), 
+                      loss='mse')
+        
+        return model
+    
+    def get_action(self, state):
+        """Get action from policy network with exploration noise"""
+        state = np.reshape(state, [1, self.state_dim])
+        mu, sigma = self.actor.predict(state, verbose=0)
+        
+        # Sample from normal distribution
+        action = np.random.normal(mu[0], sigma[0])
+        action = np.clip(action, -1.0, 1.0)
+        
+        # Calculate log probability
+        log_prob = self._log_prob(action, mu[0], sigma[0])
+        
+        return action, log_prob
+    
+    def _log_prob(self, action, mu, sigma):
+        """Calculate log probability of action"""
+        # Log probability of normal distribution
+        log_prob = -0.5 * np.sum(np.log(2.0 * np.pi * sigma**2) + 
+                                (action - mu)**2 / (sigma**2))
+        return log_prob
+    
+    def remember(self, state, action, reward, next_state, done, log_prob):
+        """Store experience in memory"""
+        self.states_buffer.append(state)
+        self.actions_buffer.append(action)
+        self.rewards_buffer.append(reward)
+        self.next_states_buffer.append(next_state)
+        self.dones_buffer.append(done)
+        self.log_probs_buffer.append(log_prob)
+    
+    def compute_advantages(self):
+        """Compute advantage estimates"""
+        states = np.array(self.states_buffer)
+        next_states = np.array(self.next_states_buffer)
+        rewards = np.array(self.rewards_buffer)
+        dones = np.array(self.dones_buffer)
+        
+        # Predict values
+        values = self.critic.predict(states, verbose=0).flatten()
+        next_values = self.critic.predict(next_states, verbose=0).flatten()
+        
+        # Calculate advantages using TD error
+        advantages = rewards + self.gamma * next_values * (1 - dones) - values
+        
+        return advantages, values
+    
+    def train(self):
+        """Train the agent using PPO algorithm"""
+        # Check if there's enough data for training
+        if len(self.states_buffer) < self.batch_size:
+            return 0, 0
+        
+        states = np.array(self.states_buffer)
+        actions = np.array(self.actions_buffer)
+        old_log_probs = np.array(self.log_probs_buffer)
+        
+        # Compute advantages and returns
+        advantages, values = self.compute_advantages()
+        returns = advantages + values
+        
+        # Normalize advantages
+        advantages = (advantages - np.mean(advantages)) / (np.std(advantages) + 1e-8)
+        
+        # Train for multiple epochs
+        actor_losses = []
+        critic_losses = []
+        
+        for _ in range(self.train_epochs):
+            # Sample random mini-batches
+            indices = np.random.permutation(len(states))
+            for start_idx in range(0, len(states), self.batch_size):
+                end_idx = min(start_idx + self.batch_size, len(states))
+                idx = indices[start_idx:end_idx]
+                
+                if len(idx) < 2:  # Skip too small batches
+                    continue
+                
+                batch_states = states[idx]
+                batch_actions = actions[idx]
+                batch_old_log_probs = old_log_probs[idx]
+                batch_advantages = advantages[idx]
+                batch_returns = returns[idx]
+                
+                # Train critic network
+                critic_history = self.critic.fit(
+                    batch_states, batch_returns, 
+                    verbose=0, batch_size=len(batch_states)
+                )
+                critic_losses.append(critic_history.history['loss'][0])
+                
+                # Train actor network with PPO loss
+                with tf.GradientTape() as tape:
+                    mu, sigma = self.actor(batch_states, training=True)
+                    curr_log_probs = self._batch_log_prob(batch_actions, mu, sigma)
+                    
+                    # Calculate ratio
+                    ratio = tf.exp(curr_log_probs - batch_old_log_probs)
+                    
+                    # PPO loss
+                    unclipped_loss = ratio * batch_advantages
+                    clipped_loss = tf.clip_by_value(ratio, 1 - self.clip_ratio, 1 + self.clip_ratio) * batch_advantages
+                    actor_loss = -tf.reduce_mean(tf.minimum(unclipped_loss, clipped_loss))
+                    
+                # Apply gradients to actor
+                grads = tape.gradient(actor_loss, self.actor.trainable_variables)
+                tf.keras.optimizers.Adam(learning_rate=self.policy_lr).apply_gradients(
+                    zip(grads, self.actor.trainable_variables)
+                )
+                
+                actor_losses.append(actor_loss.numpy())
+        
+        # Clear buffers
+        self.states_buffer = []
+        self.actions_buffer = []
+        self.rewards_buffer = []
+        self.next_states_buffer = []
+        self.dones_buffer = []
+        self.log_probs_buffer = []
+        
+        return np.mean(actor_losses), np.mean(critic_losses)
+    
+    def _batch_log_prob(self, actions, mu, sigma):
+        """Calculate log probability for a batch of actions"""
+        # Log probability of normal distribution
+        log_prob = -0.5 * tf.reduce_sum(
+            tf.math.log(2.0 * np.pi * sigma**2) + (actions - mu)**2 / (sigma**2),
+            axis=1
+        )
+        return log_prob
+    
+    def save_models(self, actor_path="space_agri_actor.h5", critic_path="space_agri_critic.h5"):
+        """Save actor and critic models"""
+        self.actor.save(actor_path)
+        self.critic.save(critic_path)
+        logger.info(f"Models saved to {actor_path} and {critic_path}")
+    
+    def load_models(self, actor_path="space_agri_actor.h5", critic_path="space_agri_critic.h5"):
+        """Load actor and critic models"""
+        self.actor = tf.keras.models.load_model(actor_path)
+        self.critic = tf.keras.models.load_model(critic_path)
+        logger.info(f"Models loaded from {actor_path} and {critic_path}")
+
+
+def train_rl_agent(df, species="Dwarf Wheat", episodes=200):
+    """Train RL agent on space agriculture data"""
+    logger.info(f"Starting RL training for {species}")
+    
+    # Create environment and agent
+    env = SpaceAgricultureEnv(df, species=species)
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.shape[0]
+    action_bound_high = env.action_space.high[0]
+    
+    agent = PPOAgent(state_dim, action_dim, action_bound_high)
+    
+    # Training tracking
+    episode_rewards = []
+    avg_rewards = []
+    all_actions = []
+    all_health = []
+    best_reward = -np.inf
+    
+    # Train for specified number of episodes
+    for episode in range(episodes):
+        observation, info = env.reset()
+        state = observation
+        episode_reward = 0
+        episode_actions = []
+        episode_health = []
+        
+        while True:
+            # Get action from agent
+            action, log_prob = agent.get_action(state)
+            episode_actions.append(action)
+            
+            # Take action in environment
+            next_state, reward, done, _, info = env.step(action)
+            episode_health.append(info['state']['health_score'])
+            
+            # Store experience
+            agent.remember(state, action, reward, next_state, done, log_prob)
+            
+            state = next_state
+            episode_reward += reward
+            
+            if done:
+                break
+        
+        # Train agent after each episode
+        actor_loss, critic_loss = agent.train()
+        
+        # Track progress
+        episode_rewards.append(episode_reward)
+        all_actions.append(episode_actions)
+        all_health.append(episode_health)
+        
+        # Calculate average reward over last 20 episodes
+        avg_reward = np.mean(episode_rewards[-20:])
+        avg_rewards.append(avg_reward)
+        
+        # Save best model
+        if avg_reward > best_reward and episode > 50:
+            best_reward = avg_reward
+            agent.save_models(f"best_{species}_actor.h5", f"best_{species}_critic.h5")
+        
+        # Log progress every 10 episodes
+        if (episode + 1) % 10 == 0:
+            logger.info(f"Episode {episode+1}/{episodes}, Reward: {episode_reward:.2f}, "
+                      f"Avg Reward: {avg_reward:.2f}, Actor Loss: {actor_loss:.4f}, "
+                      f"Critic Loss: {critic_loss:.4f}")
+    
+    # Save final model
+    agent.save_models(f"final_{species}_actor.h5", f"final_{species}_critic.h5")
+    
+    # Plot training results
+    plt.figure(figsize=(15, 10))
+    
+    plt.subplot(2, 2, 1)
+    plt.plot(episode_rewards)
+    plt.plot(avg_rewards)
+    plt.title(f"Rewards for {species}")
+    plt.xlabel("Episode")
+    plt.ylabel("Reward")
+    plt.legend(["Episode Reward", "Avg Reward"])
+    
+    plt.subplot(2, 2, 2)
+    for i in range(action_dim):
+        actions = [episode[min(10, len(episode)-1)][i] for episode in all_actions if len(episode) > 10]
+        plt.plot(actions)
+    plt.title("Actions Evolution")
+    plt.xlabel("Episode")
+    plt.ylabel("Action Value")
+    plt.legend(["Temperature", "Light", "Water", "Radiation Shield", "Nutrients"])
+    
+    plt.subplot(2, 2, 3)
+    for i in range(0, len(all_health), max(1, episodes//10)):
+        plt.plot(all_health[i])
+    plt.title("Health Score Progression")
+    plt.xlabel("Step")
+    plt.ylabel("Health Score")
+    
+    plt.subplot(2, 2, 4)
+    final_episode_health = all_health[-1]
+    final_episode_actions = np.array(all_actions[-1])
+    
+    for i in range(action_dim):
+        plt.plot(final_episode_actions[:, i])
+    plt.plot(final_episode_health, 'k--')
+    plt.title("Final Episode Actions and Health")
+    plt.xlabel("Step")
+    plt.ylabel("Value")
+    plt.legend(["Temperature", "Light", "Water", "Radiation Shield", "Nutrients", "Health"])
+    
+    plt.tight_layout()
+    plt.savefig(f"rl_training_{species}.png")
+    
+    logger.info(f"Training completed for {species}")
+    return agent, episode_rewards, avg_rewards
+
+# Function to evaluate the trained agent's performance
+def evaluate_rl_agent(agent, df, species="Dwarf Wheat", episodes=10):
+    """Evaluate trained RL agent on test scenarios"""
+    logger.info(f"Evaluating RL agent for {species}")
+    
+    env = SpaceAgricultureEnv(df, species=species)
+    
+    episode_rewards = []
+    episode_healths = []
+    episode_heights = []
+    episode_fruits = []
+    
+    for episode in range(episodes):
+        observation, info = env.reset()
+        state = observation
+        
+        total_reward = 0
+        health_scores = []
+        heights = []
+        fruit_counts =
