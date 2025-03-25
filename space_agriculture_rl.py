@@ -340,6 +340,49 @@ class SpaceAgricultureEnv:
         # Return step information
         return self._get_observation(), reward, done, False, {"state": self.state}
     
+    def update_disease_modifier(self, diagnosis):
+        """
+        Update disease reward modifier based on plant disease detection results
+        
+        Args:
+            diagnosis: Dictionary with disease detection results containing:
+                - health_status: String indicating overall health status
+                - confidence: Float from 0.0 to 1.0 indicating diagnosis confidence
+                - disease_name: String with identified disease (if any)
+                - disease_severity: Float from 0.0 to 1.0 indicating disease severity
+                
+        Returns:
+            Updated disease_reward_modifier value
+        """
+        # Default modifier (no effect)
+        default_modifier = 1.0
+        
+        # Extract diagnosis data
+        health_status = diagnosis.get('health_status', 'Unknown')
+        confidence = diagnosis.get('confidence', 0.5)
+        disease_severity = diagnosis.get('disease_severity', 0.0)
+        
+        # Calculate modifier based on health status and severity
+        if health_status == "Healthy":
+            # Healthy plants get a slight reward bonus
+            self.disease_reward_modifier = 1.1
+        elif health_status == "Moderate Risk":
+            # Moderate risk penalizes rewards proportional to severity
+            penalty = 0.3 * disease_severity * confidence
+            self.disease_reward_modifier = 1.0 - penalty
+        elif health_status == "Severe Risk":
+            # Severe risk strongly penalizes rewards
+            penalty = 0.7 * disease_severity * confidence
+            self.disease_reward_modifier = max(0.3, 1.0 - penalty)  # Cap at 0.3 to avoid excessive penalty
+        else:
+            # Unknown status, reset to default
+            self.disease_reward_modifier = default_modifier
+            
+        # Log the update
+        logger.info(f"Updated disease_reward_modifier to {self.disease_reward_modifier:.2f} based on health status: {health_status}")
+        
+        return self.disease_reward_modifier
+    
     def _calculate_optimality(self, value, min_optimal, max_optimal, inverse=False):
         """Calculate how optimal a value is compared to its ideal range
         Returns a value between 0 (far from optimal) and 1.0 (perfectly optimal)
