@@ -60,6 +60,7 @@ from utils import (visualize_growth_progress, visualize_environment_parameters,
 from plant_data_generator import generate_plant_data, load_plant_data
 from plant_disease_detection import (PlantDiseaseDetector, generate_report, 
                                    apply_diagnosis_to_environment, image_to_base64)
+from space_agriculture_research import SpaceAgricultureKnowledgeBase
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -152,7 +153,9 @@ if custom_env_params:
     radiation_range = st.sidebar.slider("Radiation Level Range", 0, 100, (0, 30), 5)
 
 # Main content area with tabs
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["Training", "Visualization", "Testing", "Plant Health", "Results"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    "Training", "Visualization", "Testing", "Plant Health", "Results", "Research"
+])
 
 # Training tab
 with tab1:
