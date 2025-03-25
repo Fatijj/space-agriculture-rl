@@ -70,15 +70,19 @@ def visualize_growth_progress(history, species, save_path=None):
 
 def visualize_environment_parameters(history, save_path=None):
     """
-    Visualize environmental parameters over time.
+    Simplified function to extract environmental parameters over time.
     
     Args:
         history: List of state dictionaries from each step
         save_path: Path to save the figure (if None, display only)
     
     Returns:
-        matplotlib figure
+        Dictionary of environment parameter data
     """
+    # Check for empty history
+    if not history:
+        return {"error": "No history data available"}
+        
     # Extract data
     steps = list(range(len(history)))
     temp = [state['temperature'] for state in history]
@@ -87,97 +91,122 @@ def visualize_environment_parameters(history, save_path=None):
     radiation = [state['radiation_level'] for state in history]
     co2 = [state['co2_level'] for state in history]
     
-    # Create figure with subplots
-    fig, axes = plt.subplots(3, 2, figsize=(12, 10))
-    
-    # Temperature
-    axes[0, 0].plot(steps, temp, 'r-')
-    axes[0, 0].set_title('Temperature (°C)')
-    axes[0, 0].grid(True, linestyle='--', alpha=0.7)
-    
-    # Light
-    axes[0, 1].plot(steps, light, 'y-')
-    axes[0, 1].set_title('Light Intensity (μmol/m²/s)')
-    axes[0, 1].grid(True, linestyle='--', alpha=0.7)
-    
-    # Water
-    axes[1, 0].plot(steps, water, 'b-')
-    axes[1, 0].set_title('Water Content (%)')
-    axes[1, 0].grid(True, linestyle='--', alpha=0.7)
-    
-    # Radiation
-    axes[1, 1].plot(steps, radiation, 'm-')
-    axes[1, 1].set_title('Radiation Level')
-    axes[1, 1].grid(True, linestyle='--', alpha=0.7)
-    
-    # CO2
-    axes[2, 0].plot(steps, co2, 'g-')
-    axes[2, 0].set_title('CO2 Level (ppm)')
-    axes[2, 0].grid(True, linestyle='--', alpha=0.7)
-    
     # Nutrients
     n_level = [state['nitrogen_level'] for state in history]
     p_level = [state['phosphorus_level'] for state in history]
     k_level = [state['potassium_level'] for state in history]
     
-    axes[2, 1].plot(steps, n_level, 'g-', label='N')
-    axes[2, 1].plot(steps, p_level, 'b-', label='P')
-    axes[2, 1].plot(steps, k_level, 'r-', label='K')
-    axes[2, 1].set_title('Nutrient Levels')
-    axes[2, 1].legend()
-    axes[2, 1].grid(True, linestyle='--', alpha=0.7)
+    # Create a dictionary with the data
+    result = {
+        "steps": steps,
+        "temperature": {
+            "values": temp,
+            "min": min(temp) if temp else 0,
+            "max": max(temp) if temp else 0,
+            "avg": sum(temp) / len(temp) if temp else 0
+        },
+        "light_intensity": {
+            "values": light,
+            "min": min(light) if light else 0,
+            "max": max(light) if light else 0,
+            "avg": sum(light) / len(light) if light else 0
+        },
+        "water_content": {
+            "values": water,
+            "min": min(water) if water else 0,
+            "max": max(water) if water else 0,
+            "avg": sum(water) / len(water) if water else 0
+        },
+        "radiation_level": {
+            "values": radiation,
+            "min": min(radiation) if radiation else 0,
+            "max": max(radiation) if radiation else 0,
+            "avg": sum(radiation) / len(radiation) if radiation else 0
+        },
+        "co2_level": {
+            "values": co2,
+            "min": min(co2) if co2 else 0,
+            "max": max(co2) if co2 else 0,
+            "avg": sum(co2) / len(co2) if co2 else 0
+        },
+        "nutrients": {
+            "nitrogen": {
+                "values": n_level,
+                "min": min(n_level) if n_level else 0,
+                "max": max(n_level) if n_level else 0,
+                "avg": sum(n_level) / len(n_level) if n_level else 0
+            },
+            "phosphorus": {
+                "values": p_level,
+                "min": min(p_level) if p_level else 0,
+                "max": max(p_level) if p_level else 0,
+                "avg": sum(p_level) / len(p_level) if p_level else 0
+            },
+            "potassium": {
+                "values": k_level,
+                "min": min(k_level) if k_level else 0,
+                "max": max(k_level) if k_level else 0,
+                "avg": sum(k_level) / len(k_level) if k_level else 0
+            }
+        }
+    }
     
-    # Set common x-axis label
-    for ax in axes.flat:
-        ax.set_xlabel('Time Steps')
-    
-    plt.tight_layout()
-    
+    # Log that we would have saved a plot in the original version
     if save_path:
-        plt.savefig(save_path)
-        logger.info(f"Environment parameters visualization saved to {save_path}")
+        logger.info(f"Environment parameters data for {save_path} (not saved as image due to matplotlib being unavailable)")
     
-    return fig
+    return result
 
 def visualize_agent_learning(agent, save_path=None):
     """
-    Visualize the agent's learning progress.
+    Extract data about the agent's learning progress.
     
     Args:
         agent: RL agent with episode_rewards and avg_rewards attributes
         save_path: Path to save the figure (if None, display only)
     
     Returns:
-        matplotlib figure
+        Dictionary with learning progress data
     """
     if not hasattr(agent, 'episode_rewards') or len(agent.episode_rewards) == 0:
         logger.warning("Agent has no recorded rewards to visualize")
-        return None
+        return {"error": "No reward data available"}
     
-    # Create figure
-    fig, ax = plt.subplots(figsize=(10, 6))
+    # Extract data
+    episodes = list(range(1, len(agent.episode_rewards) + 1))
+    episode_rewards = agent.episode_rewards
     
-    # Plot episode rewards
-    episodes = range(1, len(agent.episode_rewards) + 1)
-    ax.plot(episodes, agent.episode_rewards, 'b-', alpha=0.3, label='Episode Reward')
+    # Get average rewards if available
+    avg_rewards = agent.avg_rewards if hasattr(agent, 'avg_rewards') and len(agent.avg_rewards) > 0 else []
     
-    # Plot average rewards
-    if hasattr(agent, 'avg_rewards') and len(agent.avg_rewards) > 0:
-        ax.plot(episodes, agent.avg_rewards, 'r-', linewidth=2, label='Moving Average')
+    # Calculate statistics
+    if episode_rewards:
+        max_reward = max(episode_rewards)
+        min_reward = min(episode_rewards)
+        avg_reward = sum(episode_rewards) / len(episode_rewards)
+        last_reward = episode_rewards[-1]
+    else:
+        max_reward = min_reward = avg_reward = last_reward = 0
     
-    ax.set_xlabel('Episode')
-    ax.set_ylabel('Reward')
-    ax.set_title('Agent Learning Progress')
-    ax.legend()
-    ax.grid(True, linestyle='--', alpha=0.7)
+    # Create a dictionary with the data
+    result = {
+        "episodes": episodes,
+        "episode_rewards": episode_rewards,
+        "moving_avg_rewards": avg_rewards,
+        "stats": {
+            "max_reward": max_reward,
+            "min_reward": min_reward,
+            "avg_reward": avg_reward,
+            "last_reward": last_reward,
+            "total_episodes": len(episodes)
+        }
+    }
     
-    plt.tight_layout()
-    
+    # Log that we would have saved a plot in the original version
     if save_path:
-        plt.savefig(save_path)
-        logger.info(f"Agent learning visualization saved to {save_path}")
+        logger.info(f"Agent learning data for {save_path} (not saved as image due to matplotlib being unavailable)")
     
-    return fig
+    return result
 
 def save_experiment_results(experiment_name, agent, history, config, metrics):
     """
@@ -330,7 +359,8 @@ def calculate_performance_metrics(history, optimal_ranges):
 
 def generate_growth_heatmap(agent, env, param1, param2, save_path=None):
     """
-    Generate a heatmap showing expected plant growth for different combinations of parameters
+    Generate data that can be used to create a heatmap showing expected plant growth 
+    for different combinations of parameters
     
     Args:
         agent: Trained RL agent
@@ -340,27 +370,29 @@ def generate_growth_heatmap(agent, env, param1, param2, save_path=None):
         save_path: Path to save the figure (if None, display only)
         
     Returns:
-        matplotlib figure
+        Dictionary with heatmap data
     """
     # Create parameter grids
     p1_vals = np.linspace(param1['range'][0], param1['range'][1], param1['steps'])
     p2_vals = np.linspace(param2['range'][0], param2['range'][1], param2['steps'])
-    p1_grid, p2_grid = np.meshgrid(p1_vals, p2_vals)
     
-    # Initialize result grid
-    health_grid = np.zeros_like(p1_grid)
-    growth_grid = np.zeros_like(p1_grid)
+    # Initialize result lists (for easier JSON serialization)
+    health_data = []
+    growth_data = []
     
     # Reset environment
     observation, _ = env.reset()
     
     # For each parameter combination
-    for i in range(len(p1_vals)):
-        for j in range(len(p2_vals)):
+    for j, p2_val in enumerate(p2_vals):
+        health_row = []
+        growth_row = []
+        
+        for i, p1_val in enumerate(p1_vals):
             # Create a custom state for evaluation
             test_state = env.state.copy()
-            test_state[param1['name']] = p1_grid[j, i]
-            test_state[param2['name']] = p2_grid[j, i]
+            test_state[param1['name']] = p1_val
+            test_state[param2['name']] = p2_val
             
             # Create observation from state
             test_obs = np.array([
@@ -412,58 +444,40 @@ def generate_growth_heatmap(agent, env, param1, param2, save_path=None):
             expected_growth = expected_health * 0.5  # cm per step
             
             # Store results
-            health_grid[j, i] = expected_health
-            growth_grid[j, i] = expected_growth
-    
-    # Create plot
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
-    
-    # Health heatmap
-    cmap1 = LinearSegmentedColormap.from_list('health_cmap', ['red', 'yellow', 'green'])
-    c1 = ax1.pcolormesh(p1_grid, p2_grid, health_grid, cmap=cmap1, vmin=0, vmax=1)
-    ax1.set_xlabel(param1['name'].replace('_', ' ').title())
-    ax1.set_ylabel(param2['name'].replace('_', ' ').title())
-    ax1.set_title('Expected Plant Health')
-    plt.colorbar(c1, ax=ax1)
-    
-    # Growth heatmap
-    cmap2 = 'viridis'
-    c2 = ax2.pcolormesh(p1_grid, p2_grid, growth_grid, cmap=cmap2)
-    ax2.set_xlabel(param1['name'].replace('_', ' ').title())
-    ax2.set_ylabel(param2['name'].replace('_', ' ').title())
-    ax2.set_title('Expected Growth Rate (cm/step)')
-    plt.colorbar(c2, ax=ax2)
-    
-    # Add optimal range indicators
-    if param1['name'] in env.optimal_ranges and param2['name'] in env.optimal_ranges:
-        p1_opt = env.optimal_ranges[param1['name']]
-        p2_opt = env.optimal_ranges[param2['name']]
+            health_row.append(float(expected_health))
+            growth_row.append(float(expected_growth))
         
-        # Draw rectangles for optimal ranges
-        for ax in [ax1, ax2]:
-            rect = plt.Rectangle(
-                (p1_opt[0], p2_opt[0]), 
-                p1_opt[1] - p1_opt[0], 
-                p2_opt[1] - p2_opt[0],
-                linewidth=2, 
-                edgecolor='white', 
-                facecolor='none', 
-                linestyle='--'
-            )
-            ax.add_patch(rect)
-            ax.text(
-                p1_opt[0] + (p1_opt[1] - p1_opt[0])/2, 
-                p2_opt[0] + (p2_opt[1] - p2_opt[0])/2,
-                'Optimal',
-                color='white',
-                ha='center',
-                va='center'
-            )
+        health_data.append(health_row)
+        growth_data.append(growth_row)
     
-    plt.tight_layout()
+    # Extract optimal ranges if available
+    optimal_ranges = {}
+    if param1['name'] in env.optimal_ranges:
+        optimal_ranges[param1['name']] = env.optimal_ranges[param1['name']]
+    if param2['name'] in env.optimal_ranges:
+        optimal_ranges[param2['name']] = env.optimal_ranges[param2['name']]
     
+    # Create a dictionary with the data
+    result = {
+        "param1": {
+            "name": param1['name'],
+            "values": p1_vals.tolist(),
+            "min": float(np.min(p1_vals)),
+            "max": float(np.max(p1_vals))
+        },
+        "param2": {
+            "name": param2['name'],
+            "values": p2_vals.tolist(),
+            "min": float(np.min(p2_vals)),
+            "max": float(np.max(p2_vals))
+        },
+        "health_data": health_data,
+        "growth_data": growth_data,
+        "optimal_ranges": optimal_ranges
+    }
+    
+    # Log that we would have saved a plot in the original version
     if save_path:
-        plt.savefig(save_path)
-        logger.info(f"Growth heatmap saved to {save_path}")
+        logger.info(f"Growth heatmap data for {save_path} (not saved as image due to matplotlib being unavailable)")
     
-    return fig
+    return result
