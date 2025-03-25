@@ -5,9 +5,16 @@ Streamlit dashboard for Space Agriculture RL System
 import streamlit as st
 import pandas as pd
 import numpy as np
-# Temporarily comment out matplotlib and tensorflow imports until we can fix dependency issues
-# import matplotlib.pyplot as plt
-# import tensorflow as tf
+# Import visualization library
+import matplotlib.pyplot as plt
+
+# Try to import TensorFlow, but make it optional
+try:
+    import tensorflow as tf
+    TENSORFLOW_AVAILABLE = True
+except ImportError:
+    TENSORFLOW_AVAILABLE = False
+    print("TensorFlow not available - advanced features will be disabled")
 import os
 import time
 from datetime import datetime
