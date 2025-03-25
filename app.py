@@ -811,7 +811,12 @@ with tab3:
                 # Calculate averages
                 avg_metrics = {}
                 for key in all_test_metrics[0].keys():
-                    avg_metrics[key] = sum(m[key] for m in all_test_metrics) / len(all_test_metrics)
+                    # Check if all values for this key are numeric before calculating average
+                    if all(isinstance(m[key], (int, float)) for m in all_test_metrics):
+                        avg_metrics[key] = sum(m[key] for m in all_test_metrics) / len(all_test_metrics)
+                    else:
+                        # For non-numeric values, use the most common value
+                        avg_metrics[key] = all_test_metrics[0][key]  # Just use the first one as fallback
                 
                 # Display in columns
                 col1, col2, col3 = st.columns(3)

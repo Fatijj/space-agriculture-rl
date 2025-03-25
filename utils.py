@@ -414,22 +414,25 @@ def generate_growth_heatmap(agent, env, param1, param2, save_path=None):
             action = agent.act(test_obs, explore=False)
             
             # Use environment's internal models to predict outcomes
+            # Get the right optimal ranges for the species
+            species_ranges = env.optimal_ranges.get(env.species, env.optimal_ranges[list(env.optimal_ranges.keys())[0]])
+            
             temp_opt = env._calculate_optimality(
                 test_state['temperature'], 
-                env.optimal_ranges['temperature'][0],
-                env.optimal_ranges['temperature'][1]
+                species_ranges['temperature'][0],
+                species_ranges['temperature'][1]
             )
             
             light_opt = env._calculate_optimality(
                 test_state['light_intensity'], 
-                env.optimal_ranges['light_intensity'][0],
-                env.optimal_ranges['light_intensity'][1]
+                species_ranges['light_intensity'][0],
+                species_ranges['light_intensity'][1]
             )
             
             water_opt = env._calculate_optimality(
                 test_state['water_content'], 
-                env.optimal_ranges['water_content'][0],
-                env.optimal_ranges['water_content'][1]
+                species_ranges['water_content'][0],
+                species_ranges['water_content'][1]
             )
             
             # Compute expected health score
@@ -452,10 +455,12 @@ def generate_growth_heatmap(agent, env, param1, param2, save_path=None):
     
     # Extract optimal ranges if available
     optimal_ranges = {}
-    if param1['name'] in env.optimal_ranges:
-        optimal_ranges[param1['name']] = env.optimal_ranges[param1['name']]
-    if param2['name'] in env.optimal_ranges:
-        optimal_ranges[param2['name']] = env.optimal_ranges[param2['name']]
+    species_ranges = env.optimal_ranges.get(env.species, env.optimal_ranges[list(env.optimal_ranges.keys())[0]])
+    
+    if param1['name'] in species_ranges:
+        optimal_ranges[param1['name']] = species_ranges[param1['name']]
+    if param2['name'] in species_ranges:
+        optimal_ranges[param2['name']] = species_ranges[param2['name']]
     
     # Create a dictionary with the data
     result = {
