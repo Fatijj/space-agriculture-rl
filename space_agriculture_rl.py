@@ -143,8 +143,11 @@ class SpaceAgricultureEnv:
         """Calculate reward based on how close parameters are to optimal and health score improvement"""
         reward = 0
         
+        # Get optimal ranges for the current species, falling back to species directly if necessary
+        species_ranges = self.optimal_ranges.get(self.species, self.optimal_ranges)
+        
         # Reward for being in optimal ranges
-        temp_range = self.optimal_ranges['temperature']
+        temp_range = species_ranges['temperature']
         if temp_range[0] <= self.state['temperature'] <= temp_range[1]:
             reward += 1
         else:
@@ -152,7 +155,7 @@ class SpaceAgricultureEnv:
                        abs(self.state['temperature'] - temp_range[1]))
             reward -= dist / 10  # Penalize based on distance from optimal range
             
-        light_range = self.optimal_ranges['light_intensity']
+        light_range = species_ranges['light_intensity']
         if light_range[0] <= self.state['light_intensity'] <= light_range[1]:
             reward += 1
         else:
@@ -160,7 +163,7 @@ class SpaceAgricultureEnv:
                        abs(self.state['light_intensity'] - light_range[1]))
             reward -= dist / 200
             
-        water_range = self.optimal_ranges['water_content']
+        water_range = species_ranges['water_content']
         if water_range[0] <= self.state['water_content'] <= water_range[1]:
             reward += 1
         else:
@@ -168,7 +171,7 @@ class SpaceAgricultureEnv:
                        abs(self.state['water_content'] - water_range[1]))
             reward -= dist / 10
             
-        radiation_range = self.optimal_ranges['radiation_level']
+        radiation_range = species_ranges['radiation_level']
         if radiation_range[0] <= self.state['radiation_level'] <= radiation_range[1]:
             reward += 1
         else:
@@ -244,35 +247,38 @@ class SpaceAgricultureEnv:
         self.state['humidity'] = np.clip(self.state['humidity'], 30, 90)
         
         # Update plant health based on environmental conditions
+        # Get optimal ranges for the current species, falling back to species directly if necessary
+        species_ranges = self.optimal_ranges.get(self.species, self.optimal_ranges)
+        
         temp_opt = self._calculate_optimality(
             self.state['temperature'], 
-            self.optimal_ranges['temperature'][0],
-            self.optimal_ranges['temperature'][1]
+            species_ranges['temperature'][0],
+            species_ranges['temperature'][1]
         )
         
         light_opt = self._calculate_optimality(
             self.state['light_intensity'], 
-            self.optimal_ranges['light_intensity'][0],
-            self.optimal_ranges['light_intensity'][1]
+            species_ranges['light_intensity'][0],
+            species_ranges['light_intensity'][1]
         )
         
         water_opt = self._calculate_optimality(
             self.state['water_content'], 
-            self.optimal_ranges['water_content'][0],
-            self.optimal_ranges['water_content'][1]
+            species_ranges['water_content'][0],
+            species_ranges['water_content'][1]
         )
         
         radiation_opt = self._calculate_optimality(
             self.state['radiation_level'], 
-            self.optimal_ranges['radiation_level'][0],
-            self.optimal_ranges['radiation_level'][1],
+            species_ranges['radiation_level'][0],
+            species_ranges['radiation_level'][1],
             inverse=True  # Lower radiation is better
         )
         
         nutrient_opt = self._calculate_optimality(
             avg_nutrient, 
-            self.optimal_ranges['nutrient_mix'][0],
-            self.optimal_ranges['nutrient_mix'][1]
+            species_ranges['nutrient_mix'][0],
+            species_ranges['nutrient_mix'][1]
         )
         
         # Calculate new health score (weighted average of optimality scores)

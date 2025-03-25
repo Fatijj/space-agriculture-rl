@@ -145,6 +145,17 @@ with tab1:
         
         # Override environment parameters if custom settings are used
         if custom_env_params:
+            # Make sure the species exists in the optimal_ranges dictionary
+            if selected_species not in env.optimal_ranges:
+                env.optimal_ranges[selected_species] = {
+                    'temperature': (20, 25),
+                    'light_intensity': (800, 1200),
+                    'water_content': (60, 80),
+                    'radiation_level': (0, 10),
+                    'nutrient_mix': (70, 90)
+                }
+            
+            # Update with custom parameters
             env.optimal_ranges[selected_species]['temperature'] = temp_range
             env.optimal_ranges[selected_species]['light_intensity'] = light_range
             env.optimal_ranges[selected_species]['water_content'] = water_range
@@ -304,7 +315,9 @@ with tab1:
                     'radiation_range': radiation_range
                 })
             
-            metrics = calculate_performance_metrics(episode_history[-1], env.optimal_ranges[selected_species])
+            # Get optimal ranges for the selected species
+            species_ranges = env.optimal_ranges.get(selected_species, env.optimal_ranges)
+            metrics = calculate_performance_metrics(episode_history[-1], species_ranges)
             metrics['final_reward'] = all_episode_rewards[-1]
             metrics['avg_reward'] = rolling_reward
             
@@ -737,9 +750,11 @@ with tab3:
                     time.sleep(0.1)  # Brief delay to show progress
                 
                 # Calculate metrics for this episode
+                # Get optimal ranges for the selected species
+                species_ranges = st.session_state.env.optimal_ranges.get(selected_species, st.session_state.env.optimal_ranges)
                 metrics = calculate_performance_metrics(
                     episode_states, 
-                    st.session_state.env.optimal_ranges[selected_species]
+                    species_ranges
                 )
                 metrics['episode_reward'] = episode_reward
                 
