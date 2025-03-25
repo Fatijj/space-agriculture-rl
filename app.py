@@ -827,8 +827,108 @@ with tab3:
                     state = next_state
                     episode_reward += reward
                     
-                    # Show current state
-                    test_result_area.json(info['state'])
+                    # Show current state with bilingual format (English and Arabic)
+                    state = info['state']
+                    # Define Arabic translations
+                    arabic_translations = {
+                        "temperature": "درجة الحرارة",
+                        "light_intensity": "شدة الضوء",
+                        "water_content": "محتوى الماء",
+                        "radiation_level": "مستوى الإشعاع",
+                        "height": "الارتفاع",
+                        "growth_stage": "مرحلة النمو",
+                        "health_score": "مؤشر الصحة",
+                        "fruit_count": "عدد الثمار",
+                        "co2_level": "مستوى ثاني أكسيد الكربون",
+                        "o2_level": "مستوى الأكسجين",
+                        "humidity": "الرطوبة",
+                        "nitrogen_level": "مستوى النيتروجين",
+                        "phosphorus_level": "مستوى الفوسفور",
+                        "potassium_level": "مستوى البوتاسيوم",
+                        # Growth stages
+                        "germination": "الإنبات",
+                        "seedling": "الشتلة",
+                        "vegetative": "النمو الخضري",
+                        "budding": "التبرعم",
+                        "flowering": "الإزهار",
+                        "fruiting": "الإثمار",
+                        "mature": "النضج"
+                    }
+                    
+                    # Format the test results with a nice layout
+                    test_result_area.markdown(f"""
+                    <div style="background-color: #f7f9fc; padding: 15px; border-radius: 10px; border-left: 5px solid #2E8B57;">
+                        <h3 style="text-align: center; color: #2E8B57; font-size: 1.2rem;">
+                            Test Results | نتائج الاختبار
+                        </h3>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 15px;">
+                            <div style="border-bottom: 1px solid #eaecef; padding: 8px;">
+                                <div style="font-weight: bold;">🌡️ Temperature | {arabic_translations["temperature"]}</div>
+                                <div dir="ltr">{state['temperature']:.2f} °C</div>
+                            </div>
+                            
+                            <div style="border-bottom: 1px solid #eaecef; padding: 8px;">
+                                <div style="font-weight: bold;">💧 Water Content | {arabic_translations["water_content"]}</div>
+                                <div dir="ltr">{state['water_content']:.2f}%</div>
+                            </div>
+                            
+                            <div style="border-bottom: 1px solid #eaecef; padding: 8px;">
+                                <div style="font-weight: bold;">☀️ Light Intensity | {arabic_translations["light_intensity"]}</div>
+                                <div dir="ltr">{state['light_intensity']:.2f} μmol/m²/s</div>
+                            </div>
+                            
+                            <div style="border-bottom: 1px solid #eaecef; padding: 8px;">
+                                <div style="font-weight: bold;">☢️ Radiation | {arabic_translations["radiation_level"]}</div>
+                                <div dir="ltr">{state['radiation_level']:.2f}</div>
+                            </div>
+                            
+                            <div style="border-bottom: 1px solid #eaecef; padding: 8px;">
+                                <div style="font-weight: bold;">🌱 Height | {arabic_translations["height"]}</div>
+                                <div dir="ltr">{state['height']:.2f} cm</div>
+                            </div>
+                            
+                            <div style="border-bottom: 1px solid #eaecef; padding: 8px;">
+                                <div style="font-weight: bold;">❤️ Health | {arabic_translations["health_score"]}</div>
+                                <div dir="ltr">{state['health_score']:.2f}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="background-color: #e8f4ea; padding: 10px; border-radius: 5px; margin-bottom: 12px;">
+                            <span style="font-weight: bold;">🌿 Growth Stage | {arabic_translations["growth_stage"]}: </span>
+                            <span>{state['growth_stage'].capitalize()} | {arabic_translations.get(state['growth_stage'], state['growth_stage'])}</span>
+                            {f'<span style="margin-left: 15px;"><b>🍎 Fruit Count | {arabic_translations["fruit_count"]}:</b> {state.get("fruit_count", 0)}</span>' if "fruit_count" in state and state["fruit_count"] else ""}
+                        </div>
+                        
+                        <details>
+                            <summary style="margin-top: 10px; color: #2E8B57; cursor: pointer; font-weight: bold;">
+                                Additional Parameters | معلومات إضافية
+                            </summary>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px;">
+                                <div style="border-bottom: 1px solid #eaecef; padding: 8px;">
+                                    <div style="font-weight: bold;">CO₂ | {arabic_translations["co2_level"]}</div>
+                                    <div dir="ltr">{state['co2_level']:.2f} ppm</div>
+                                </div>
+                                
+                                <div style="border-bottom: 1px solid #eaecef; padding: 8px;">
+                                    <div style="font-weight: bold;">O₂ | {arabic_translations["o2_level"]}</div>
+                                    <div dir="ltr">{state['o2_level']:.2f}%</div>
+                                </div>
+                                
+                                <div style="border-bottom: 1px solid #eaecef; padding: 8px;">
+                                    <div style="font-weight: bold;">Humidity | {arabic_translations["humidity"]}</div>
+                                    <div dir="ltr">{state['humidity']:.2f}%</div>
+                                </div>
+                                
+                                <div style="border-bottom: 1px solid #eaecef; padding: 8px;">
+                                    <div style="font-weight: bold;">NPK Levels</div>
+                                    <div dir="ltr">{state['nitrogen_level']:.1f}-{state['phosphorus_level']:.1f}-{state['potassium_level']:.1f}</div>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
                     time.sleep(0.1)  # Brief delay to show progress
                 
                 # Calculate metrics for this episode
@@ -845,8 +945,18 @@ with tab3:
                 all_test_rewards.append(episode_reward)
                 all_test_metrics.append(metrics)
             
-            # Show test results
-            test_result_area.success(f"Testing completed! Average reward: {sum(all_test_rewards)/len(all_test_rewards):.2f}")
+            # Show test results with bilingual success message
+            test_result_area.markdown(f"""
+            <div style="background-color: #e8f4ea; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px;">
+                <h3 style="color: #2E8B57; margin-bottom: 10px;">
+                    Testing Completed! | اكتمل الاختبار!
+                </h3>
+                <div style="font-size: 1.1rem;">
+                    <span>Average Reward | متوسط المكافأة: </span>
+                    <span style="font-weight: bold; color: #2E8B57;">{sum(all_test_rewards)/len(all_test_rewards):.2f}</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
             
             # Display metrics
             with metrics_container:
