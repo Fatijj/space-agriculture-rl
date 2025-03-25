@@ -921,13 +921,15 @@ with tab4:
             diagnosis = st.session_state.diagnosis_results
             
             # Display health status with color
-            health_status = diagnosis['health_status']
+            health_status = diagnosis.get('health_status', 'Unknown')
             if health_status == "Healthy":
                 status_color = "green"
             elif health_status == "Moderate Risk":
                 status_color = "orange"
-            else:  # Severe Risk
+            elif health_status == "Severe Risk":
                 status_color = "red"
+            else:  # Unknown
+                status_color = "gray"
                 
             st.markdown(f"<h3 style='color:{status_color};'>Status: {health_status}</h3>", unsafe_allow_html=True)
             
