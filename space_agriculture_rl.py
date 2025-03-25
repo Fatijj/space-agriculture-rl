@@ -1,6 +1,7 @@
 """
 Space Agriculture Environment for Reinforcement Learning
-This module implements a custom environment for space agriculture.
+This module implements a custom environment for space agriculture with integration
+of scientific research findings.
 """
 
 import numpy as np
@@ -11,12 +12,22 @@ import pandas as pd
 # import matplotlib.pyplot as plt
 import logging
 import random
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     filename='space_agri_rl.log')
 logger = logging.getLogger('SpaceAgriRL')
+
+# Try to import the space agriculture research module
+try:
+    from space_agriculture_research import SpaceAgricultureKnowledgeBase
+    RESEARCH_AVAILABLE = True
+    logger.info("Space Agriculture Research module loaded successfully")
+except ImportError:
+    RESEARCH_AVAILABLE = False
+    logger.warning("Space Agriculture Research module not available - continuing without research integration")
 
 class SpaceAgricultureEnv:
     """Custom Environment for Space Agriculture (simplified version)"""
@@ -46,6 +57,19 @@ class SpaceAgricultureEnv:
         
         # Add disease detection variables
         self.disease_reward_modifier = 1.0  # Default: no disease detected (multiplier for reward)
+        
+        # Initialize research knowledge base if available
+        self.knowledge_base = None
+        self.research_reward_modifier = 1.0  # Default: no research impact (multiplier for reward)
+        
+        if RESEARCH_AVAILABLE:
+            try:
+                self.knowledge_base = SpaceAgricultureKnowledgeBase()
+                logger.info(f"Research knowledge base initialized for {species}")
+            except Exception as e:
+                logger.error(f"Failed to initialize research knowledge base: {str(e)}")
+        else:
+            logger.info("Research module not available, proceeding without research-based enhancements")
         
         # Define default optimal ranges
         default_ranges = {
@@ -204,6 +228,33 @@ class SpaceAgricultureEnv:
         # Apply disease detection modifier to reward
         # This penalizes the agent more for unhealthy plants or rewards proper disease management
         reward = reward * self.disease_reward_modifier
+        
+        # Apply research-based knowledge to reward calculation if available
+        if self.knowledge_base is not None:
+            try:
+                # Create action dictionary for easier reference by the knowledge base
+                action_dict = {
+                    'temperature_action': self.last_action[0] * 2.0,
+                    'light_action': self.last_action[1] * 200.0,
+                    'water_action': self.last_action[2] * 10.0,
+                    'radiation_action': self.last_action[3] * 5.0,
+                    'nutrient_action': self.last_action[4] * 5.0
+                }
+                
+                # Get research-based modifier from the knowledge base
+                self.research_reward_modifier = self.knowledge_base.calculate_research_reward_modifier(
+                    self.state, action_dict, self.species
+                )
+                
+                # Apply research-based modifier to the reward
+                reward = reward * self.research_reward_modifier
+                logger.debug(f"Applied research reward modifier: {self.research_reward_modifier:.2f}")
+                
+                # If the action aligns well with research (modifier > 1.1), give a positive message
+                if self.research_reward_modifier > 1.1 and self.steps_taken % 5 == 0:
+                    logger.info(f"Action aligns well with research findings, rewarding agent with modifier {self.research_reward_modifier:.2f}")
+            except Exception as e:
+                logger.error(f"Error applying research knowledge to reward: {str(e)}")
         
         # Prevent extreme negative rewards that could destabilize learning
         reward = max(reward, -10.0)  # Cap at -10.0 to avoid excessively negative rewards
