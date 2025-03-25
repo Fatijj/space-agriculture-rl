@@ -285,7 +285,33 @@ with tab1:
                 
                 # Update UI
                 if step % 5 == 0 or done:
-                    env_status.json(info['state'])
+                    # Format environment status with better display
+                    state = info['state']
+                    env_status.markdown(f"""
+                    <div style="background-color: #f7f9fc; padding: 15px; border-radius: 10px; border-left: 5px solid #2E8B57;">
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                            <div><b>🌡️ Temperature:</b> {state['temperature']:.2f} °C</div>
+                            <div><b>💧 Water Content:</b> {state['water_content']:.2f}%</div>
+                            <div><b>☀️ Light Intensity:</b> {state['light_intensity']:.2f} μmol/m²/s</div>
+                            <div><b>☢️ Radiation Level:</b> {state['radiation_level']:.2f}</div>
+                            <div><b>🌱 Height:</b> {state['height']:.2f} cm</div>
+                            <div><b>🍎 Fruit Count:</b> {state.get('fruit_count', 0)}</div>
+                            <div><b>🌿 Growth Stage:</b> {state['growth_stage'].capitalize()}</div>
+                            <div><b>❤️ Health Score:</b> {state['health_score']:.2f}</div>
+                        </div>
+                        <details>
+                            <summary style="margin-top: 10px; color: #2E8B57; cursor: pointer;">Additional Parameters</summary>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px;">
+                                <div><b>CO₂ Level:</b> {state['co2_level']:.2f} ppm</div>
+                                <div><b>O₂ Level:</b> {state['o2_level']:.2f}%</div>
+                                <div><b>Humidity:</b> {state['humidity']:.2f}%</div>
+                                <div><b>Nitrogen Level:</b> {state['nitrogen_level']:.2f}</div>
+                                <div><b>Phosphorus Level:</b> {state['phosphorus_level']:.2f}</div>
+                                <div><b>Potassium Level:</b> {state['potassium_level']:.2f}</div>
+                            </div>
+                        </details>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
                     # Display current episode details
                     episode_details.markdown(f"""
