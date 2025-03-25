@@ -1,16 +1,9 @@
-[tool.poetry.dependencies]
-gymnasium = "^0.21.0" # Specify the correct version
-matplotlib = "^3.5.1"
-numpy = "^1.21.0"
-pandas = "^1.3.3"
-tensorflow = "^2.8.0"
-kaggle = "^1.5.6"poetry update[project]
-name = "repl-nix-workspace"
+[project]
+name = "space-agriculture-rl"
 version = "0.1.0"
-description = "Add your description here"
+description = "A reinforcement learning system for optimizing plant growth conditions in space agriculture environments"
 requires-python = ">=3.11,<3.12"
 dependencies = [
-    "gymnasium",
     "matplotlib",
     "numpy", 
     "pandas",
@@ -350,7 +343,7 @@ denoising-diffusion-pytorch = [{ index = "pytorch-cpu", marker = "platform_syste
 descript-audio-codec = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 descript-audiotools = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 detecto = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
-detoxify = [{ index = "pytorch-cpu", marker= "platform_system == 'Linux'" }]
+detoxify = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 dgenerate = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 dghs-imgutils = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 dgl = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
