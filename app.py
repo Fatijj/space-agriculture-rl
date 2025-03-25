@@ -19,10 +19,30 @@ import os
 try:
     import kaggle
     # Set up Kaggle credentials from environment variables
-    os.environ['KAGGLE_USERNAME'] = os.getenv('KAGGLE_USERNAME', '')
-    os.environ['KAGGLE_KEY'] = os.getenv('KAGGLE_KEY', '')
+    kaggle_username = os.getenv('KAGGLE_USERNAME', '')
+    kaggle_key = os.getenv('KAGGLE_KEY', '')
+    
+    # Create Kaggle config directory if it doesn't exist
+    kaggle_dir = os.path.expanduser('~/.kaggle')
+    if not os.path.exists(kaggle_dir):
+        os.makedirs(kaggle_dir)
+    
+    # Create kaggle.json configuration file
+    kaggle_config = {
+        "username": kaggle_username,
+        "key": kaggle_key
+    }
+    
+    with open(os.path.join(kaggle_dir, 'kaggle.json'), 'w') as f:
+        json.dump(kaggle_config, f)
+    
+    # Set appropriate permissions
+    os.chmod(os.path.join(kaggle_dir, 'kaggle.json'), 0o600)
+    
 except ImportError:
     logging.warning("Kaggle package not available. Some features may be limited.")
+except Exception as e:
+    logging.warning(f"Failed to configure Kaggle: {str(e)}")
 
 # Import project modules
 from space_agriculture_rl import SpaceAgricultureEnv
