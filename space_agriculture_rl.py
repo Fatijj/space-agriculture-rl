@@ -44,14 +44,23 @@ class SpaceAgricultureEnv:
         self.action_space = SimpleSpace((5,))
         self.observation_space = SimpleSpace((12,))
         
-        # Define optimal ranges for the species
-        self.optimal_ranges = {
+        # Define default optimal ranges
+        default_ranges = {
+            'temperature': (20, 25),
+            'light_intensity': (800, 1200),
+            'water_content': (60, 80),
+            'radiation_level': (0, 10),
+            'nutrient_mix': (70, 90)  # overall nutrient level
+        }
+        
+        # Define optimal ranges for all species
+        all_species_ranges = {
             'Dwarf Wheat': {
                 'temperature': (20, 25),
                 'light_intensity': (800, 1200),
                 'water_content': (60, 80),
                 'radiation_level': (0, 10),
-                'nutrient_mix': (70, 90)  # overall nutrient level
+                'nutrient_mix': (70, 90)
             },
             'Cherry Tomato': {
                 'temperature': (22, 28),
@@ -73,14 +82,42 @@ class SpaceAgricultureEnv:
                 'water_content': (60, 80),
                 'radiation_level': (0, 15),
                 'nutrient_mix': (60, 80)
+            },
+            'Microgreens': {
+                'temperature': (19, 23),
+                'light_intensity': (600, 1000),
+                'water_content': (70, 85),
+                'radiation_level': (0, 7),
+                'nutrient_mix': (65, 85)
+            },
+            'Space Basil': {
+                'temperature': (21, 27),
+                'light_intensity': (800, 1300),
+                'water_content': (65, 80),
+                'radiation_level': (0, 8),
+                'nutrient_mix': (70, 90)
+            },
+            'Radish': {
+                'temperature': (16, 20),
+                'light_intensity': (650, 1100),
+                'water_content': (60, 80),
+                'radiation_level': (0, 9),
+                'nutrient_mix': (60, 85)
+            },
+            'Spinach': {
+                'temperature': (16, 22),
+                'light_intensity': (600, 1000),
+                'water_content': (65, 85),
+                'radiation_level': (0, 6),
+                'nutrient_mix': (65, 85)
             }
-        }.get(species, {
-            'temperature': (20, 25),
-            'light_intensity': (800, 1200),
-            'water_content': (60, 80),
-            'radiation_level': (0, 10),
-            'nutrient_mix': (70, 90)
-        })
+        }
+        
+        # Create optimal_ranges and ensure species is in the dictionary
+        self.optimal_ranges = all_species_ranges.copy()
+        if species not in self.optimal_ranges:
+            self.optimal_ranges[species] = default_ranges.copy()
+            logger.warning(f"Species '{species}' not found in predefined ranges, using default values")
         
         # State variables
         self.reset()
