@@ -663,11 +663,17 @@ with tab3:
             # Initial conditions customization
             custom_initial = st.checkbox("Custom Initial Conditions", False)
             
+            # Initialize variables with default values
+            init_temp = 22
+            init_light = 1000
+            init_water = 70
+            init_radiation = 20
+            
             if custom_initial:
-                init_temp = st.slider("Initial Temperature (°C)", 10, 40, 22)
-                init_light = st.slider("Initial Light (μmol/m²/s)", 100, 2000, 1000, 50)
-                init_water = st.slider("Initial Water (%)", 10, 100, 70, 5)
-                init_radiation = st.slider("Initial Radiation", 0, 100, 20, 5)
+                init_temp = st.slider("Initial Temperature (°C)", 10, 40, init_temp)
+                init_light = st.slider("Initial Light (μmol/m²/s)", 100, 2000, init_light, 50)
+                init_water = st.slider("Initial Water (%)", 10, 100, init_water, 5)
+                init_radiation = st.slider("Initial Radiation", 0, 100, init_radiation, 5)
             
             # Start test button
             start_test = st.button("Start Test", type="primary")
@@ -860,16 +866,100 @@ with tab4:
             
             # Visualizations
             st.subheader("Visualizations")
-            viz_col1, viz_col2 = st.columns(2)
             
-            with viz_col1:
-                species = experiment['config']['species']
-                fig = visualize_growth_progress(experiment['history'], species)
-                st.pyplot(fig)
+            species = experiment['config']['species']
+            growth_data = visualize_growth_progress(experiment['history'], species)
+            env_data = visualize_environment_parameters(experiment['history'])
             
-            with viz_col2:
-                fig = visualize_environment_parameters(experiment['history'])
-                st.pyplot(fig)
+            # Create tabs for different visualizations
+            result_tabs = st.tabs(["Growth", "Environment", "Key Metrics"])
+            
+            # Growth tab
+            with result_tabs[0]:
+                if "error" not in growth_data:
+                    # Plot height over time
+                    st.subheader("Plant Height Progress")
+                    height_chart = pd.DataFrame({
+                        'Day': growth_data["steps"],
+                        'Height (cm)': growth_data["heights"]
+                    })
+                    st.line_chart(height_chart.set_index('Day'))
+                    
+                    # Plot health over time
+                    st.subheader("Plant Health Progress")
+                    health_chart = pd.DataFrame({
+                        'Day': growth_data["steps"],
+                        'Health Score': growth_data["health"]
+                    })
+                    st.line_chart(health_chart.set_index('Day'))
+                else:
+                    st.error("No growth data available to visualize")
+            
+            # Environment tab
+            with result_tabs[1]:
+                if "error" not in env_data:
+                    # Create environmental parameter charts
+                    st.subheader("Environmental Parameters")
+                    env_subtabs = st.tabs(["Temperature", "Light", "Water", "Radiation"])
+                    
+                    with env_subtabs[0]:
+                        temp_chart = pd.DataFrame({
+                            'Day': env_data["steps"],
+                            'Temperature (°C)': env_data["temperature"]["values"]
+                        })
+                        st.line_chart(temp_chart.set_index('Day'))
+                        st.write(f"Min: {env_data['temperature']['min']:.1f}°C, " +
+                                f"Max: {env_data['temperature']['max']:.1f}°C, " + 
+                                f"Avg: {env_data['temperature']['avg']:.1f}°C")
+                    
+                    with env_subtabs[1]:
+                        light_chart = pd.DataFrame({
+                            'Day': env_data["steps"],
+                            'Light Intensity': env_data["light_intensity"]["values"]
+                        })
+                        st.line_chart(light_chart.set_index('Day'))
+                        st.write(f"Min: {env_data['light_intensity']['min']:.0f}, " +
+                                f"Max: {env_data['light_intensity']['max']:.0f}, " + 
+                                f"Avg: {env_data['light_intensity']['avg']:.0f}")
+                    
+                    with env_subtabs[2]:
+                        water_chart = pd.DataFrame({
+                            'Day': env_data["steps"],
+                            'Water Content (%)': env_data["water_content"]["values"]
+                        })
+                        st.line_chart(water_chart.set_index('Day'))
+                        st.write(f"Min: {env_data['water_content']['min']:.1f}%, " +
+                                f"Max: {env_data['water_content']['max']:.1f}%, " + 
+                                f"Avg: {env_data['water_content']['avg']:.1f}%")
+                    
+                    with env_subtabs[3]:
+                        radiation_chart = pd.DataFrame({
+                            'Day': env_data["steps"],
+                            'Radiation Level': env_data["radiation_level"]["values"]
+                        })
+                        st.line_chart(radiation_chart.set_index('Day'))
+                        st.write(f"Min: {env_data['radiation_level']['min']:.1f}, " +
+                                f"Max: {env_data['radiation_level']['max']:.1f}, " + 
+                                f"Avg: {env_data['radiation_level']['avg']:.1f}")
+                else:
+                    st.error("No environment data available")
+            
+            # Key Metrics tab
+            with result_tabs[2]:
+                # Extract and display key metrics
+                metrics = experiment['metrics']
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.metric("Final Height", f"{metrics.get('final_height', 0):.1f} cm")
+                    st.metric("Final Health", f"{metrics.get('final_health', 0):.2f}")
+                    st.metric("Fruit Count", f"{metrics.get('fruit_count', 0)}")
+                
+                with col2:
+                    st.metric("Final Reward", f"{metrics.get('final_reward', 0):.2f}")
+                    st.metric("Average Reward", f"{metrics.get('avg_reward', 0):.2f}")
+                    st.metric("Growth Rate", f"{metrics.get('growth_rate', 0):.2f} cm/day")
             
             # Download results
             st.download_button(
