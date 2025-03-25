@@ -109,7 +109,9 @@ st.sidebar.header("Configuration")
 
 # Plant species selection
 species_options = ['Dwarf Wheat', 'Cherry Tomato', 'Lettuce', 'Space Potato']
+# Store selected species in session state so it's available across the app
 selected_species = st.sidebar.selectbox("Select Plant Species", species_options)
+st.session_state.selected_species = selected_species
 
 # Agent selection
 agent_type = st.sidebar.selectbox("Select Agent Type", ["DQN (Deep Q-Network)", "PPO (Proximal Policy Optimization)"])
@@ -987,12 +989,17 @@ with tab4:
                     st.write(f"{i+1}. {recommendation}")
                     
             # Action to apply to environment
-            if st.session_state.env is not None:
-                if st.button("Apply Diagnosis to Environment", key="apply_diagnosis"):
+            if st.button("Apply Diagnosis to Environment", key="apply_diagnosis"):
+                if st.session_state.env is not None:
                     disease_modifier = st.session_state.env.update_disease_modifier(diagnosis)
                     st.success(f"Applied disease status to environment. Reward modifier: {disease_modifier:.2f}")
-            else:
-                st.warning("Environment not initialized. Train an agent first to apply diagnosis.")
+                else:
+                    # Create a temporary environment just to show the modifier value
+                    from space_agriculture_rl import SpaceAgricultureEnv
+                    temp_env = SpaceAgricultureEnv(st.session_state.plant_data, st.session_state.selected_species)
+                    disease_modifier = temp_env.update_disease_modifier(diagnosis)
+                    st.success(f"Diagnosis recorded. If you train an agent, this will apply a reward modifier of: {disease_modifier:.2f}")
+                    st.info("For full functionality, train an agent in the Training tab to create a persistent environment.")
         else:
             st.info("No diagnosis available. Please upload or capture an image and analyze it.")
             
