@@ -1,6 +1,6 @@
 """
 Plant Disease Detection Module for Space Agriculture
-Advanced version for space-relevant plant diseases
+Advanced version for space-relevant plant diseases with support for Plant Pathology 2020 dataset
 """
 
 import numpy as np
@@ -10,6 +10,8 @@ import streamlit as st
 import os
 import logging
 from datetime import datetime
+import pandas as pd
+import matplotlib.pyplot as plt
 
 # Try to import TensorFlow, but make it optional
 try:
@@ -18,6 +20,14 @@ try:
 except ImportError:
     TENSORFLOW_AVAILABLE = False
     print("TensorFlow not available - using basic image processing")
+
+# Import plant pathology dataset module
+try:
+    from plant_pathology_dataset import PlantPathologyDataset, extract_image_features, analyze_disease_patterns
+    DATASET_AVAILABLE = True
+except ImportError:
+    DATASET_AVAILABLE = False
+    print("Plant Pathology dataset module not available - using default disease detection")
 
 # Dictionary of plant diseases and their characteristics specific to space agriculture
 PLANT_DISEASES = {
@@ -75,13 +85,27 @@ PLANT_DISEASES = {
 # Simplified model for disease detection
 class PlantDiseaseDetector:
     """
-    A simplified plant disease detector that mimics a trained CNN model.
-    In a full implementation, this would use a trained TensorFlow/PyTorch model.
+    Plant disease detector with support for Plant Pathology 2020 dataset.
+    Can use either basic feature extraction or TensorFlow if available.
     """
     def __init__(self):
         """Initialize the plant disease detector"""
-        # We would load a pre-trained model here in a full implementation
+        # Initialize with all possible disease classes
         self.disease_classes = list(PLANT_DISEASES.keys())
+        
+        # Load Plant Pathology dataset if available
+        self.dataset = None
+        self.disease_patterns = None
+        
+        if DATASET_AVAILABLE:
+            try:
+                self.dataset = PlantPathologyDataset()
+                self.disease_patterns = analyze_disease_patterns(self.dataset)
+                logging.info("Plant Pathology dataset and patterns loaded successfully")
+            except Exception as e:
+                logging.error(f"Error loading Plant Pathology dataset: {str(e)}")
+        else:
+            logging.info("Plant Pathology dataset not available, using built-in detection")
     
     def preprocess_image(self, img_array):
         """
@@ -117,111 +141,179 @@ class PlantDiseaseDetector:
             Dictionary with disease probabilities
         """
         # In a real implementation, this would run the image through a trained model
-        # Here we simulate a more sophisticated prediction with TensorFlow-like approach
         try:
-            # Create a more advanced image analysis
-            # Extract multiple features that correlate with different disease patterns
-            
-            # Basic image statistics
-            brightness = np.mean(img_array)
-            variance = np.var(img_array)
-            
-            # Color channel analysis (RGB)
-            r_channel = img_array[:,:,0] if img_array.ndim >= 3 else img_array
-            g_channel = img_array[:,:,1] if img_array.ndim >= 3 else img_array
-            b_channel = img_array[:,:,2] if img_array.ndim >= 3 else img_array
-            
-            r_mean = np.mean(r_channel)
-            g_mean = np.mean(g_channel)
-            b_mean = np.mean(b_channel)
-            
-            # Color ratios - useful for detecting chlorosis and other color-based diseases
-            rg_ratio = r_mean / (g_mean + 1e-10)  # Avoid division by zero
-            rb_ratio = r_mean / (b_mean + 1e-10)
-            
-            # Texture analysis - approximated by local variance 
-            # Higher values might indicate spots, lesions, or irregular growth
-            texture_variance = np.var(img_array - np.mean(img_array, axis=(0,1)))
-            
-            # Edge detection approximation - look for sudden changes in intensity
-            # High edge values might indicate lesions, abnormal growth patterns
-            h_gradient = np.mean(np.abs(np.diff(g_channel, axis=1)))
-            v_gradient = np.mean(np.abs(np.diff(g_channel, axis=0)))
-            edge_intensity = (h_gradient + v_gradient) / 2
-            
-            # Initialize prediction dictionary with all disease types
-            prediction = {disease: 0.1 for disease in self.disease_classes}
-            
-            # Enhanced prediction logic based on multiple features
-            
-            # Healthy plants typically have strong green channel, balanced texture
-            greenness = g_mean / (r_mean + b_mean + 1e-10)
-            if greenness > 0.4 and variance < 1500 and texture_variance < 1000:
-                prediction["healthy"] = 0.7 + np.random.random() * 0.2
+            # Check if we should use the Plant Pathology dataset-based prediction
+            if DATASET_AVAILABLE and self.dataset is not None:
+                return self._predict_with_dataset(img_array)
             else:
-                prediction["healthy"] = 0.2 + np.random.random() * 0.3
-            
-            # Scab often shows as dark lesions (low brightness in spots, high variance)
-            if brightness < 100 and variance > 1500 and edge_intensity > 20:
-                prediction["scab"] = 0.5 + np.random.random() * 0.3
-            else:
-                prediction["scab"] = 0.1 + np.random.random() * 0.2
-            
-            # Rust shows as orange-brown spots (high red channel, medium green)
-            if rg_ratio > 1.2 and rb_ratio > 1.2 and variance > 1200:
-                prediction["rust"] = 0.6 + np.random.random() * 0.3
-            else:
-                prediction["rust"] = 0.1 + np.random.random() * 0.2
-            
-            # Microgravity stress often results in irregular growth patterns
-            # Higher texture variance and edge values might indicate this
-            if texture_variance > 1200 and edge_intensity > 25:
-                prediction["microgravity_stress"] = 0.5 + np.random.random() * 0.3
-            else:
-                prediction["microgravity_stress"] = 0.1 + np.random.random() * 0.15
-            
-            # Radiation damage often shows as mottled discoloration
-            # High variance across all channels without clear patterns
-            channel_variance = np.var([r_mean, g_mean, b_mean])
-            if channel_variance > 500 and texture_variance > 1000:
-                prediction["radiation_damage"] = 0.5 + np.random.random() * 0.3
-            else:
-                prediction["radiation_damage"] = 0.1 + np.random.random() * 0.1
-            
-            # Nutrient deficiency often shows as yellowing (high red-green ratio)
-            if rg_ratio < 0.8 and g_mean < 100 and brightness < 120:
-                prediction["nutrient_deficiency"] = 0.6 + np.random.random() * 0.3
-            else:
-                prediction["nutrient_deficiency"] = 0.1 + np.random.random() * 0.2
-            
-            # Calculate probability of multiple issues based on the other predictions
-            # Higher if we have significant probabilities for more than one condition
-            sorted_predictions = sorted([(k, v) for k, v in prediction.items() if k != "multiple_diseases"], 
-                                       key=lambda x: x[1], reverse=True)
-            
-            if len(sorted_predictions) >= 2 and sorted_predictions[1][1] > 0.3:
-                # If second highest prediction is significant
-                top_two_sum = sorted_predictions[0][1] + sorted_predictions[1][1]
-                prediction["multiple_diseases"] = min(0.2 + top_two_sum / 3, 0.7)
-            else:
-                prediction["multiple_diseases"] = 0.05 + np.random.random() * 0.1
-            
-            # Normalize to ensure sum is close to 1.0
-            total = sum(prediction.values())
-            for key in prediction:
-                prediction[key] = prediction[key] / total
-            
-            # If you installed TensorFlow, this could be logged for debugging
-            logging.debug(f"Image features: brightness={brightness:.2f}, variance={variance:.2f}, " +
-                        f"rg_ratio={rg_ratio:.2f}, texture_var={texture_variance:.2f}")
-            
-            return prediction
-            
+                return self._predict_with_features(img_array)
+                
         except Exception as e:
             st.error(f"Error during prediction: {e}")
             logging.error(f"Prediction error: {str(e)}")
             # Fallback to uniform distribution
             return {disease: 1.0/len(self.disease_classes) for disease in self.disease_classes}
+            
+    def _predict_with_dataset(self, img_array):
+        """
+        Predict using the Plant Pathology 2020 dataset
+        
+        Args:
+            img_array: Preprocessed image array
+            
+        Returns:
+            Dictionary with disease probabilities
+        """
+        try:
+            # Extract features from the image
+            features = extract_image_features(img_array)
+            
+            # Log the extracted features
+            logging.info(f"Extracted image features: {features}")
+            
+            # Get predictions from the dataset model
+            plant_path_predictions = self.dataset.get_disease_probabilities(features)
+            
+            # Get our standard space agriculture predictions as well
+            space_agri_predictions = self._predict_with_features(img_array)
+            
+            # Initialize the combined prediction dictionary
+            prediction = {}
+            
+            # First, include the standard plant pathology diseases
+            for disease in ['healthy', 'rust', 'scab', 'multiple_diseases']:
+                if disease in plant_path_predictions:
+                    # Use plant pathology dataset predictions for these diseases with higher weight
+                    prediction[disease] = plant_path_predictions[disease] * 0.7 + space_agri_predictions.get(disease, 0) * 0.3
+                elif disease in space_agri_predictions:
+                    prediction[disease] = space_agri_predictions[disease]
+            
+            # Then, include the space-specific diseases with their original probabilities
+            for disease in ['microgravity_stress', 'radiation_damage', 'nutrient_deficiency']:
+                if disease in space_agri_predictions:
+                    prediction[disease] = space_agri_predictions[disease]
+            
+            # Normalize probabilities to ensure they sum to 1.0
+            total = sum(prediction.values())
+            for key in prediction:
+                prediction[key] = prediction[key] / total
+                
+            # Log the combined predictions
+            logging.info(f"Combined predictions (dataset + features): {prediction}")
+            
+            return prediction
+        
+        except Exception as e:
+            logging.error(f"Error in dataset-based prediction: {str(e)}")
+            # Fallback to feature-based prediction
+            return self._predict_with_features(img_array)
+            
+    def _predict_with_features(self, img_array):
+        """
+        Predict disease based on extracted image features
+        
+        Args:
+            img_array: Preprocessed image array
+            
+        Returns:
+            Dictionary with disease probabilities
+        """
+        # Extract multiple features that correlate with different disease patterns
+        
+        # Basic image statistics
+        brightness = np.mean(img_array)
+        variance = np.var(img_array)
+        
+        # Color channel analysis (RGB)
+        r_channel = img_array[:,:,0] if img_array.ndim >= 3 else img_array
+        g_channel = img_array[:,:,1] if img_array.ndim >= 3 else img_array
+        b_channel = img_array[:,:,2] if img_array.ndim >= 3 else img_array
+        
+        r_mean = np.mean(r_channel)
+        g_mean = np.mean(g_channel)
+        b_mean = np.mean(b_channel)
+        
+        # Color ratios - useful for detecting chlorosis and other color-based diseases
+        rg_ratio = r_mean / (g_mean + 1e-10)  # Avoid division by zero
+        rb_ratio = r_mean / (b_mean + 1e-10)
+        
+        # Texture analysis - approximated by local variance 
+        # Higher values might indicate spots, lesions, or irregular growth
+        texture_variance = np.var(img_array - np.mean(img_array, axis=(0,1)))
+        
+        # Edge detection approximation - look for sudden changes in intensity
+        # High edge values might indicate lesions, abnormal growth patterns
+        h_gradient = np.mean(np.abs(np.diff(g_channel, axis=1)))
+        v_gradient = np.mean(np.abs(np.diff(g_channel, axis=0)))
+        edge_intensity = (h_gradient + v_gradient) / 2
+        
+        # Initialize prediction dictionary with all disease types
+        prediction = {disease: 0.1 for disease in self.disease_classes}
+        
+        # Enhanced prediction logic based on multiple features
+        
+        # Healthy plants typically have strong green channel, balanced texture
+        greenness = g_mean / (r_mean + b_mean + 1e-10)
+        if greenness > 0.4 and variance < 1500 and texture_variance < 1000:
+            prediction["healthy"] = 0.7 + np.random.random() * 0.2
+        else:
+            prediction["healthy"] = 0.2 + np.random.random() * 0.3
+        
+        # Scab often shows as dark lesions (low brightness in spots, high variance)
+        if brightness < 100 and variance > 1500 and edge_intensity > 20:
+            prediction["scab"] = 0.5 + np.random.random() * 0.3
+        else:
+            prediction["scab"] = 0.1 + np.random.random() * 0.2
+        
+        # Rust shows as orange-brown spots (high red channel, medium green)
+        if rg_ratio > 1.2 and rb_ratio > 1.2 and variance > 1200:
+            prediction["rust"] = 0.6 + np.random.random() * 0.3
+        else:
+            prediction["rust"] = 0.1 + np.random.random() * 0.2
+        
+        # Microgravity stress often results in irregular growth patterns
+        # Higher texture variance and edge values might indicate this
+        if texture_variance > 1200 and edge_intensity > 25:
+            prediction["microgravity_stress"] = 0.5 + np.random.random() * 0.3
+        else:
+            prediction["microgravity_stress"] = 0.1 + np.random.random() * 0.15
+        
+        # Radiation damage often shows as mottled discoloration
+        # High variance across all channels without clear patterns
+        channel_variance = np.var([r_mean, g_mean, b_mean])
+        if channel_variance > 500 and texture_variance > 1000:
+            prediction["radiation_damage"] = 0.5 + np.random.random() * 0.3
+        else:
+            prediction["radiation_damage"] = 0.1 + np.random.random() * 0.1
+        
+        # Nutrient deficiency often shows as yellowing (high red-green ratio)
+        if rg_ratio < 0.8 and g_mean < 100 and brightness < 120:
+            prediction["nutrient_deficiency"] = 0.6 + np.random.random() * 0.3
+        else:
+            prediction["nutrient_deficiency"] = 0.1 + np.random.random() * 0.2
+        
+        # Calculate probability of multiple issues based on the other predictions
+        # Higher if we have significant probabilities for more than one condition
+        sorted_predictions = sorted([(k, v) for k, v in prediction.items() if k != "multiple_diseases"], 
+                                   key=lambda x: x[1], reverse=True)
+        
+        if len(sorted_predictions) >= 2 and sorted_predictions[1][1] > 0.3:
+            # If second highest prediction is significant
+            top_two_sum = sorted_predictions[0][1] + sorted_predictions[1][1]
+            prediction["multiple_diseases"] = min(0.2 + top_two_sum / 3, 0.7)
+        else:
+            prediction["multiple_diseases"] = 0.05 + np.random.random() * 0.1
+        
+        # Normalize to ensure sum is close to 1.0
+        total = sum(prediction.values())
+        for key in prediction:
+            prediction[key] = prediction[key] / total
+        
+        # Log the feature values
+        logging.debug(f"Image features: brightness={brightness:.2f}, variance={variance:.2f}, " +
+                    f"rg_ratio={rg_ratio:.2f}, texture_var={texture_variance:.2f}")
+        
+        return prediction
     
     def get_diagnosis(self, predictions):
         """

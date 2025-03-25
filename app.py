@@ -918,7 +918,54 @@ with tab4:
     Monitor plant health in real-time using computer vision and disease detection.
     Upload an image or use your camera to capture plants and receive diagnostic information.
     The diagnosis will influence the reinforcement learning agent's decision making.
+    
+    *This system now incorporates the Plant Pathology 2020 dataset for improved accuracy in disease detection.*
     """)
+    
+    # Add information about the dataset in an expandable section
+    with st.expander("About Plant Pathology Dataset"):
+        st.markdown("""
+        ### Plant Pathology 2020 Dataset
+        
+        The Plant Pathology 2020 dataset contains images of apple leaves with various health conditions:
+        - **Healthy**: Normal apple leaves with no visible symptoms
+        - **Multiple Diseases**: Leaves affected by more than one disease
+        - **Rust**: Leaves with rust infection, showing orange-brown pustules
+        - **Scab**: Leaves with apple scab, showing dark olive-green to brown lesions
+        
+        This dataset is used to train our disease detection model for more accurate diagnostics.
+        The system combines this knowledge with space-specific conditions like microgravity stress
+        and radiation damage to provide comprehensive plant health monitoring for space agriculture.
+        """)
+        
+        # Try to display dataset statistics if available
+        try:
+            from plant_pathology_dataset import PlantPathologyDataset
+            
+            # Initialize the dataset
+            dataset = PlantPathologyDataset()
+            stats = dataset.get_statistics()
+            
+            # Display dataset statistics
+            st.subheader("Dataset Statistics")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Training Samples", stats.get('train_samples', 0))
+            with col2:
+                st.metric("Testing Samples", stats.get('test_samples', 0))
+            
+            # Display class distribution if available
+            class_dist = stats.get('class_distribution', {})
+            if class_dist:
+                st.subheader("Class Distribution")
+                data = {
+                    "Class": list(class_dist.keys()),
+                    "Count": [d.get('count', 0) for d in class_dist.values()],
+                    "Percentage": [f"{d.get('percentage', 0):.1f}%" for d in class_dist.values()]
+                }
+                st.dataframe(pd.DataFrame(data))
+        except Exception as e:
+            st.warning(f"Could not load Plant Pathology dataset statistics: {str(e)}")
     
     # Create main columns for the tab
     health_col1, health_col2 = st.columns([1, 1])
