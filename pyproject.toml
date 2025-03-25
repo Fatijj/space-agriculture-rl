@@ -683,7 +683,7 @@ nonebot-plugin-nailongremove = [{ index = "pytorch-cpu", marker = "platform_syst
 nowcasting-dataloader = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 nowcasting-forecast = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 nshtrainer = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
-nuwa-pytorch = [{ index = "pytorch-cpu", marker = "platform`Linux'" }]
+nuwa-pytorch = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 nvflare = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 nvidia-modelopt = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 ocf-datapipes = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
