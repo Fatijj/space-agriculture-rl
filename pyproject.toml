@@ -2,14 +2,15 @@
 name = "repl-nix-workspace"
 version = "0.1.0"
 description = "Add your description here"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.12"
 dependencies = [
     "gymnasium",
     "matplotlib",
-    "numpy",
+    "numpy", 
     "pandas",
     "streamlit>=1.43.2",
     "tensorflow",
+    "kaggle"
 ]
 
 [[tool.uv.index]]
@@ -343,7 +344,7 @@ denoising-diffusion-pytorch = [{ index = "pytorch-cpu", marker = "platform_syste
 descript-audio-codec = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 descript-audiotools = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 detecto = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
-detoxify = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
+detoxify = [{ index = "pytorch-cpu", marker= "platform_system == 'Linux'" }]
 dgenerate = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 dghs-imgutils = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 dgl = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
@@ -682,7 +683,7 @@ nonebot-plugin-nailongremove = [{ index = "pytorch-cpu", marker = "platform_syst
 nowcasting-dataloader = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 nowcasting-forecast = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 nshtrainer = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
-nuwa-pytorch = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
+nuwa-pytorch = [{ index = "pytorch-cpu", marker = "platform`Linux'" }]
 nvflare = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 nvidia-modelopt = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 ocf-datapipes = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
