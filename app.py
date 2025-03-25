@@ -14,6 +14,12 @@ from datetime import datetime
 import json
 import logging
 from PIL import Image
+import os
+import kaggle
+
+# Set up Kaggle credentials from environment variables
+os.environ['KAGGLE_USERNAME'] = os.getenv('KAGGLE_USERNAME', '')
+os.environ['KAGGLE_KEY'] = os.getenv('KAGGLE_KEY', '')
 
 # Import project modules
 from space_agriculture_rl import SpaceAgricultureEnv
