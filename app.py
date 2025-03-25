@@ -13,6 +13,7 @@ import time
 from datetime import datetime
 import json
 import logging
+from PIL import Image
 
 # Import project modules
 from space_agriculture_rl import SpaceAgricultureEnv
@@ -21,6 +22,8 @@ from utils import (visualize_growth_progress, visualize_environment_parameters,
                  visualize_agent_learning, save_experiment_results, 
                  calculate_performance_metrics, generate_growth_heatmap)
 from plant_data_generator import generate_plant_data, load_plant_data
+from plant_disease_detection import (PlantDiseaseDetector, generate_report, 
+                                   apply_diagnosis_to_environment, image_to_base64)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -65,6 +68,12 @@ if 'training_running' not in st.session_state:
 
 if 'experiment_results' not in st.session_state:
     st.session_state.experiment_results = {}
+    
+if 'disease_detector' not in st.session_state:
+    st.session_state.disease_detector = PlantDiseaseDetector()
+    
+if 'diagnosis_results' not in st.session_state:
+    st.session_state.diagnosis_results = None
 
 # Sidebar for configuration
 st.sidebar.header("Configuration")
@@ -99,7 +108,7 @@ if custom_env_params:
     radiation_range = st.sidebar.slider("Radiation Level Range", 0, 100, (0, 30), 5)
 
 # Main content area with tabs
-tab1, tab2, tab3, tab4 = st.tabs(["Training", "Visualization", "Testing", "Results"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Training", "Visualization", "Testing", "Plant Health", "Results"])
 
 # Training tab
 with tab1:
@@ -853,8 +862,105 @@ with tab3:
     else:
         st.info("Train the agent first to test its performance!")
 
-# Results tab
+# Plant Health Monitoring tab
 with tab4:
+    st.header("Plant Health Monitoring")
+    st.markdown("""
+    Monitor plant health in real-time using computer vision and disease detection.
+    Upload an image or use your camera to capture plants and receive diagnostic information.
+    The diagnosis will influence the reinforcement learning agent's decision making.
+    """)
+    
+    # Create main columns for the tab
+    health_col1, health_col2 = st.columns([1, 1])
+    
+    with health_col1:
+        # Image upload/capture area
+        st.subheader("Plant Image Input")
+        
+        # Option to upload an image or use camera
+        img_source = st.radio("Select image source:", ["Upload Image", "Use Camera"], index=0)
+        
+        uploaded_image = None
+        camera_image = None
+        
+        if img_source == "Upload Image":
+            uploaded_image = st.file_uploader("Upload a plant image", type=["jpg", "jpeg", "png"])
+            if uploaded_image is not None:
+                st.image(uploaded_image, caption="Uploaded Image", width=300)
+                
+                # Convert the uploaded file to numpy array
+                file_bytes = np.asarray(bytearray(uploaded_image.read()), dtype=np.uint8)
+                img_array = np.array(Image.open(uploaded_image))
+                
+                # Add button to analyze
+                if st.button("Analyze Plant Health", key="analyze_upload"):
+                    predictions = st.session_state.disease_detector.predict(img_array)
+                    diagnosis = st.session_state.disease_detector.get_diagnosis(predictions)
+                    st.session_state.diagnosis_results = diagnosis
+        else:
+            # Camera input
+            camera_input = st.camera_input("Take a picture of the plant")
+            if camera_input is not None:
+                st.image(camera_input, caption="Captured Image", width=300)
+                
+                # Convert the camera input to numpy array
+                img_array = np.array(Image.open(camera_input))
+                
+                # Add button to analyze
+                if st.button("Analyze Plant Health", key="analyze_camera"):
+                    predictions = st.session_state.disease_detector.predict(img_array)
+                    diagnosis = st.session_state.disease_detector.get_diagnosis(predictions)
+                    st.session_state.diagnosis_results = diagnosis
+    
+    with health_col2:
+        # Display diagnosis results
+        st.subheader("Plant Health Diagnosis")
+        
+        if st.session_state.diagnosis_results:
+            diagnosis = st.session_state.diagnosis_results
+            
+            # Display health status with color
+            health_status = diagnosis['health_status']
+            if health_status == "Healthy":
+                status_color = "green"
+            elif health_status == "Moderate Risk":
+                status_color = "orange"
+            else:  # Severe Risk
+                status_color = "red"
+                
+            st.markdown(f"<h3 style='color:{status_color};'>Status: {health_status}</h3>", unsafe_allow_html=True)
+            
+            # Display confidence level
+            st.write(f"Confidence: {diagnosis['confidence']*100:.1f}%")
+            
+            # Display disease information if detected
+            if 'disease_name' in diagnosis and diagnosis['disease_name'] != "None":
+                st.write(f"**Detected Issue:** {diagnosis['disease_name']}")
+                st.write(f"**Severity:** {diagnosis['disease_severity']*100:.1f}%")
+                
+                # Display recommendations
+                st.subheader("Recommendations")
+                for i, recommendation in enumerate(diagnosis['recommendations']):
+                    st.write(f"{i+1}. {recommendation}")
+                    
+            # Action to apply to environment
+            if st.session_state.env is not None:
+                if st.button("Apply Diagnosis to Environment", key="apply_diagnosis"):
+                    disease_modifier = st.session_state.env.update_disease_modifier(diagnosis)
+                    st.success(f"Applied disease status to environment. Reward modifier: {disease_modifier:.2f}")
+            else:
+                st.warning("Environment not initialized. Train an agent first to apply diagnosis.")
+        else:
+            st.info("No diagnosis available. Please upload or capture an image and analyze it.")
+            
+        # Historical diagnoses section
+        with st.expander("Historical Disease Data"):
+            st.write("This section will show historical disease detection data.")
+            # This would be populated with real data in a full implementation
+
+# Results tab
+with tab5:
     st.header("Saved Results")
     
     if st.session_state.experiment_results:
