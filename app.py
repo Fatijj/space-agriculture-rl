@@ -264,21 +264,19 @@ with tab1:
             
             # Plot rewards
             if episode % 5 == 0 or episode == num_episodes - 1:
-                fig, ax = plt.subplots(figsize=(10, 4))
-                ax.plot(all_episode_rewards, label='Episode Reward')
+                # Create DataFrame for Streamlit chart
+                chart_data = pd.DataFrame({
+                    'Episode': list(range(1, len(all_episode_rewards) + 1)),
+                    'Reward': all_episode_rewards
+                })
                 
-                # Plot rolling average
+                # Add rolling average if we have enough data
                 if len(all_episode_rewards) >= 10:
                     rolling_avg = [sum(all_episode_rewards[max(0, i-9):i+1]) / min(10, i+1) for i in range(len(all_episode_rewards))]
-                    ax.plot(rolling_avg, 'r-', label='10-Episode Average')
+                    chart_data['10-Episode Average'] = rolling_avg
                 
-                ax.set_xlabel('Episode')
-                ax.set_ylabel('Reward')
-                ax.set_title('Training Progress')
-                ax.legend()
-                ax.grid(True, linestyle='--', alpha=0.7)
-                training_plot.pyplot(fig)
-                plt.close(fig)
+                # Display training progress chart
+                training_plot.line_chart(chart_data.set_index('Episode'))
         
         # Save last episode for visualization
         if episode_history:
@@ -361,8 +359,31 @@ with tab2:
         with viz_tab1:
             st.subheader(f"{selected_species} Growth Progress")
             
-            fig = visualize_growth_progress(st.session_state.simulation_history, selected_species)
-            st.pyplot(fig)
+            growth_data = visualize_growth_progress(st.session_state.simulation_history, selected_species)
+            
+            if "error" not in growth_data:
+                # Plot height over time
+                height_chart = pd.DataFrame({
+                    'Day': growth_data["steps"],
+                    'Height (cm)': growth_data["heights"]
+                })
+                st.line_chart(height_chart.set_index('Day'))
+                
+                # Plot health over time
+                health_chart = pd.DataFrame({
+                    'Day': growth_data["steps"],
+                    'Health Score': growth_data["health"]
+                })
+                st.line_chart(health_chart.set_index('Day'))
+                
+                # Show growth stage changes
+                if growth_data["stage_changes"]:
+                    st.write("Growth Stage Changes:")
+                    stages_df = pd.DataFrame(growth_data["stage_changes"], 
+                                           columns=["Day", "New Stage"])
+                    st.dataframe(stages_df)
+            else:
+                st.error("No growth data available to visualize")
             
             # Display growth metrics
             if st.session_state.simulation_history:
@@ -390,8 +411,66 @@ with tab2:
         with viz_tab2:
             st.subheader("Environmental Parameters Over Time")
             
-            fig = visualize_environment_parameters(st.session_state.simulation_history)
-            st.pyplot(fig)
+            env_data = visualize_environment_parameters(st.session_state.simulation_history)
+            
+            if "error" not in env_data:
+                # Create tabs for different environment parameters
+                env_tabs = st.tabs(["Temperature", "Light", "Water", "Radiation", "Nutrients"])
+                
+                with env_tabs[0]:
+                    temp_chart = pd.DataFrame({
+                        'Day': env_data["steps"],
+                        'Temperature (°C)': env_data["temperature"]["values"]
+                    })
+                    st.line_chart(temp_chart.set_index('Day'))
+                    st.write(f"Min: {env_data['temperature']['min']:.1f}°C, " +
+                            f"Max: {env_data['temperature']['max']:.1f}°C, " + 
+                            f"Avg: {env_data['temperature']['avg']:.1f}°C")
+                
+                with env_tabs[1]:
+                    light_chart = pd.DataFrame({
+                        'Day': env_data["steps"],
+                        'Light Intensity': env_data["light_intensity"]["values"]
+                    })
+                    st.line_chart(light_chart.set_index('Day'))
+                    st.write(f"Min: {env_data['light_intensity']['min']:.0f}, " +
+                            f"Max: {env_data['light_intensity']['max']:.0f}, " + 
+                            f"Avg: {env_data['light_intensity']['avg']:.0f}")
+                
+                with env_tabs[2]:
+                    water_chart = pd.DataFrame({
+                        'Day': env_data["steps"],
+                        'Water Content (%)': env_data["water_content"]["values"]
+                    })
+                    st.line_chart(water_chart.set_index('Day'))
+                    st.write(f"Min: {env_data['water_content']['min']:.1f}%, " +
+                            f"Max: {env_data['water_content']['max']:.1f}%, " + 
+                            f"Avg: {env_data['water_content']['avg']:.1f}%")
+                
+                with env_tabs[3]:
+                    radiation_chart = pd.DataFrame({
+                        'Day': env_data["steps"],
+                        'Radiation Level': env_data["radiation_level"]["values"]
+                    })
+                    st.line_chart(radiation_chart.set_index('Day'))
+                    st.write(f"Min: {env_data['radiation_level']['min']:.1f}, " +
+                            f"Max: {env_data['radiation_level']['max']:.1f}, " + 
+                            f"Avg: {env_data['radiation_level']['avg']:.1f}")
+                
+                with env_tabs[4]:
+                    nutrients_chart = pd.DataFrame({
+                        'Day': env_data["steps"],
+                        'Nitrogen': env_data["nutrients"]["nitrogen"]["values"],
+                        'Phosphorus': env_data["nutrients"]["phosphorus"]["values"],
+                        'Potassium': env_data["nutrients"]["potassium"]["values"]
+                    })
+                    st.line_chart(nutrients_chart.set_index('Day'))
+                    n_avg = env_data["nutrients"]["nitrogen"]["avg"]
+                    p_avg = env_data["nutrients"]["phosphorus"]["avg"]
+                    k_avg = env_data["nutrients"]["potassium"]["avg"]
+                    st.write(f"Avg N-P-K: {n_avg:.0f}-{p_avg:.0f}-{k_avg:.0f}")
+            else:
+                st.error("No environment data available to visualize")
             
             # Display final parameters
             if st.session_state.simulation_history:
@@ -421,8 +500,35 @@ with tab2:
             st.subheader("Agent Learning Progress")
             
             if st.session_state.agent and hasattr(st.session_state.agent, 'episode_rewards') and len(st.session_state.agent.episode_rewards) > 0:
-                fig = visualize_agent_learning(st.session_state.agent)
-                st.pyplot(fig)
+                agent_data = visualize_agent_learning(st.session_state.agent)
+                
+                if "error" not in agent_data:
+                    # Plot rewards
+                    rewards_chart = pd.DataFrame({
+                        'Episode': agent_data["episodes"],
+                        'Reward': agent_data["episode_rewards"]
+                    })
+                    
+                    if agent_data["moving_avg_rewards"]:
+                        rewards_chart['Moving Avg'] = agent_data["moving_avg_rewards"]
+                    
+                    st.line_chart(rewards_chart.set_index('Episode'))
+                    
+                    # Display statistics
+                    if isinstance(agent_data, dict) and "stats" in agent_data:
+                        stats = agent_data["stats"]
+                        total_episodes = stats.get("total_episodes", 0)
+                        max_reward = stats.get("max_reward", 0)
+                        avg_reward = stats.get("avg_reward", 0)
+                    else:
+                        total_episodes = len(agent_data.get("episodes", []))
+                        rewards = agent_data.get("episode_rewards", [])
+                        max_reward = max(rewards) if rewards else 0
+                        avg_reward = sum(rewards) / len(rewards) if rewards else 0
+                    
+                    st.write(f"Episodes: {total_episodes}, " +
+                           f"Max Reward: {max_reward:.2f}, " +
+                           f"Avg Reward: {avg_reward:.2f}")
                 
                 # Display learning metrics
                 col1, col2, col3 = st.columns(3)
@@ -493,13 +599,48 @@ with tab2:
                     }
                     
                     with st.spinner("Generating heatmap..."):
-                        fig = generate_growth_heatmap(
+                        heatmap_data = generate_growth_heatmap(
                             st.session_state.agent,
                             st.session_state.env,
                             param1,
                             param2
                         )
-                        st.pyplot(fig)
+                        
+                        if "error" not in heatmap_data:
+                            # Create health heatmap
+                            st.subheader("Expected Plant Health")
+                            
+                            # Create dataframe for health data
+                            health_df = pd.DataFrame(
+                                heatmap_data["health_data"],
+                                index=heatmap_data["param2"]["values"],
+                                columns=heatmap_data["param1"]["values"]
+                            )
+                            
+                            # Display heatmap
+                            st.write(f"{param2_name.replace('_', ' ').title()} vs {param1_name.replace('_', ' ').title()}")
+                            st.dataframe(health_df.style.background_gradient(cmap="RdYlGn", axis=None))
+                            
+                            # Create growth heatmap
+                            st.subheader("Expected Growth Rate (cm/step)")
+                            
+                            # Create dataframe for growth data
+                            growth_df = pd.DataFrame(
+                                heatmap_data["growth_data"],
+                                index=heatmap_data["param2"]["values"],
+                                columns=heatmap_data["param1"]["values"]
+                            )
+                            
+                            # Display heatmap
+                            st.dataframe(growth_df.style.background_gradient(cmap="viridis", axis=None))
+                            
+                            # Show optimal ranges if available
+                            if heatmap_data["optimal_ranges"]:
+                                st.subheader("Optimal Ranges")
+                                for param, range_vals in heatmap_data["optimal_ranges"].items():
+                                    st.write(f"{param.replace('_', ' ').title()}: {range_vals[0]} to {range_vals[1]}")
+                        else:
+                            st.error("Error generating heatmap data")
             else:
                 st.info("Train the agent first to see parameter heatmaps!")
     else:
@@ -630,13 +771,64 @@ with tab3:
                 
                 # Growth visualization for the last test episode
                 st.subheader("Last Test Episode Growth")
-                fig = visualize_growth_progress(all_test_states[-1], selected_species)
-                st.pyplot(fig)
+                growth_data = visualize_growth_progress(all_test_states[-1], selected_species)
+                
+                if "error" not in growth_data:
+                    # Plot height over time
+                    height_chart = pd.DataFrame({
+                        'Day': growth_data["steps"],
+                        'Height (cm)': growth_data["heights"]
+                    })
+                    st.line_chart(height_chart.set_index('Day'))
+                    
+                    # Plot health over time
+                    health_chart = pd.DataFrame({
+                        'Day': growth_data["steps"],
+                        'Health Score': growth_data["health"]
+                    })
+                    st.line_chart(health_chart.set_index('Day'))
+                else:
+                    st.error("No growth data available to visualize")
                 
                 # Environmental parameters
                 st.subheader("Last Test Episode Environment")
-                fig = visualize_environment_parameters(all_test_states[-1])
-                st.pyplot(fig)
+                env_data = visualize_environment_parameters(all_test_states[-1])
+                
+                if "error" not in env_data:
+                    # Create tabs for different environment parameters
+                    env_tabs = st.tabs(["Temperature", "Light", "Water", "Other"])
+                    
+                    with env_tabs[0]:
+                        temp_chart = pd.DataFrame({
+                            'Day': env_data["steps"],
+                            'Temperature (°C)': env_data["temperature"]["values"]
+                        })
+                        st.line_chart(temp_chart.set_index('Day'))
+                    
+                    with env_tabs[1]:
+                        light_chart = pd.DataFrame({
+                            'Day': env_data["steps"],
+                            'Light Intensity': env_data["light_intensity"]["values"]
+                        })
+                        st.line_chart(light_chart.set_index('Day'))
+                    
+                    with env_tabs[2]:
+                        water_chart = pd.DataFrame({
+                            'Day': env_data["steps"],
+                            'Water Content (%)': env_data["water_content"]["values"]
+                        })
+                        st.line_chart(water_chart.set_index('Day'))
+                    
+                    with env_tabs[3]:
+                        # Create combined chart for other parameters
+                        other_chart = pd.DataFrame({
+                            'Day': env_data["steps"],
+                            'Radiation': env_data["radiation_level"]["values"],
+                            'CO2': [x/1000 for x in env_data["co2_level"]["values"]]  # Scale down for better visualization
+                        })
+                        st.line_chart(other_chart.set_index('Day'))
+                else:
+                    st.error("No environment data available to visualize")
     else:
         st.info("Train the agent first to test its performance!")
 
