@@ -1002,21 +1002,37 @@ with tab3:
                 all_test_metrics.append(metrics)
             
             # Show test results with bilingual success message
-            test_result_area.markdown(f"""
-            <div style="background-color: #e8f4ea; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px;">
-                <h3 style="color: #2E8B57; margin-bottom: 10px;">
-                    Testing Completed! | اكتمل الاختبار!
-                </h3>
-                <div style="font-size: 1.1rem;">
-                    <span>Average Reward | متوسط المكافأة: </span>
-                    <span style="font-weight: bold; color: #2E8B57;">{sum(all_test_rewards)/len(all_test_rewards):.2f}</span>
+            if st.session_state.language == 'English':
+                test_result_area.markdown(f"""
+                <div style="background-color: #e8f4ea; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px;">
+                    <h3 style="color: #2E8B57; margin-bottom: 10px;">
+                        Testing Completed!
+                    </h3>
+                    <div style="font-size: 1.1rem;">
+                        <span>Average Reward: </span>
+                        <span style="font-weight: bold; color: #2E8B57;">{sum(all_test_rewards)/len(all_test_rewards):.2f}</span>
+                    </div>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+            else:
+                test_result_area.markdown(f"""
+                <div style="background-color: #e8f4ea; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px;">
+                    <h3 style="color: #2E8B57; margin-bottom: 10px;">
+                        اكتمل الاختبار!
+                    </h3>
+                    <div style="font-size: 1.1rem;">
+                        <span>متوسط المكافأة: </span>
+                        <span style="font-weight: bold; color: #2E8B57;">{sum(all_test_rewards)/len(all_test_rewards):.2f}</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
             
             # Display metrics
             with metrics_container:
-                st.subheader("Test Metrics")
+                if st.session_state.language == 'English':
+                    st.subheader("Test Metrics")
+                else:
+                    st.subheader("مقاييس الاختبار")
                 
                 # Calculate averages
                 avg_metrics = {}
@@ -1032,37 +1048,68 @@ with tab3:
                 col1, col2, col3 = st.columns(3)
                 
                 with col1:
-                    st.metric("Avg. Reward", f"{avg_metrics['episode_reward']:.2f}")
-                    st.metric("Avg. Final Height", f"{avg_metrics['final_height']:.2f} cm")
+                    if st.session_state.language == 'English':
+                        st.metric("Avg. Reward", f"{avg_metrics['episode_reward']:.2f}")
+                        st.metric("Avg. Final Height", f"{avg_metrics['final_height']:.2f} cm")
+                    else:
+                        st.metric("متوسط المكافأة", f"{avg_metrics['episode_reward']:.2f}")
+                        st.metric("متوسط الارتفاع النهائي", f"{avg_metrics['final_height']:.2f} سم")
                 
                 with col2:
-                    st.metric("Avg. Health", f"{avg_metrics['avg_health']:.2f}")
-                    st.metric("Optimal Temp. Time", f"{avg_metrics['temperature_optimal_time_pct']:.1f}%")
+                    if st.session_state.language == 'English':
+                        st.metric("Avg. Health", f"{avg_metrics['avg_health']:.2f}")
+                        st.metric("Optimal Temp. Time", f"{avg_metrics['temperature_optimal_time_pct']:.1f}%")
+                    else:
+                        st.metric("متوسط الصحة", f"{avg_metrics['avg_health']:.2f}")
+                        st.metric("وقت درجة الحرارة المثلى", f"{avg_metrics['temperature_optimal_time_pct']:.1f}%")
                 
                 with col3:
-                    st.metric("Avg. Fruit Count", f"{avg_metrics['fruit_count']:.1f}")
-                    st.metric("Optimal Light Time", f"{avg_metrics['light_optimal_time_pct']:.1f}%")
+                    if st.session_state.language == 'English':
+                        st.metric("Avg. Fruit Count", f"{avg_metrics['fruit_count']:.1f}")
+                        st.metric("Optimal Light Time", f"{avg_metrics['light_optimal_time_pct']:.1f}%")
+                    else:
+                        st.metric("متوسط عدد الثمار", f"{avg_metrics['fruit_count']:.1f}")
+                        st.metric("وقت الإضاءة المثلى", f"{avg_metrics['light_optimal_time_pct']:.1f}%")
                 
                 # Growth visualization for the last test episode
-                st.subheader("Last Test Episode Growth")
+                if st.session_state.language == 'English':
+                    st.subheader("Last Test Episode Growth")
+                else:
+                    st.subheader("نمو آخر اختبار")
+                    
                 growth_data = visualize_growth_progress(all_test_states[-1], selected_species)
                 
                 if "error" not in growth_data:
                     # Plot height over time
-                    height_chart = pd.DataFrame({
-                        'Day': growth_data["steps"],
-                        'Height (cm)': growth_data["heights"]
-                    })
-                    st.line_chart(height_chart.set_index('Day'))
+                    if st.session_state.language == 'English':
+                        height_chart = pd.DataFrame({
+                            'Day': growth_data["steps"],
+                            'Height (cm)': growth_data["heights"]
+                        })
+                    else:
+                        height_chart = pd.DataFrame({
+                            'اليوم': growth_data["steps"],
+                            'الارتفاع (سم)': growth_data["heights"]
+                        })
+                    st.line_chart(height_chart.set_index('Day' if st.session_state.language == 'English' else 'اليوم'))
                     
                     # Plot health over time
-                    health_chart = pd.DataFrame({
-                        'Day': growth_data["steps"],
-                        'Health Score': growth_data["health"]
-                    })
-                    st.line_chart(health_chart.set_index('Day'))
+                    if st.session_state.language == 'English':
+                        health_chart = pd.DataFrame({
+                            'Day': growth_data["steps"],
+                            'Health Score': growth_data["health"]
+                        })
+                    else:
+                        health_chart = pd.DataFrame({
+                            'اليوم': growth_data["steps"],
+                            'مؤشر الصحة': growth_data["health"]
+                        })
+                    st.line_chart(health_chart.set_index('Day' if st.session_state.language == 'English' else 'اليوم'))
                 else:
-                    st.error("No growth data available to visualize")
+                    if st.session_state.language == 'English':
+                        st.error("No growth data available to visualize")
+                    else:
+                        st.error("لا توجد بيانات نمو متاحة للعرض")
                 
                 # Environmental parameters
                 st.subheader("Last Test Episode Environment")
@@ -1677,14 +1724,23 @@ with tab6:
     """)
     
     # Show knowledge base influence on selected species
-    st.subheader(f"Research-Based Recommendations for {selected_species}")
+    if st.session_state.language == 'English':
+        st.subheader(f"Research-Based Recommendations for {selected_species}")
+    else:
+        st.subheader(f"التوصيات المستندة إلى البحث لنبات {selected_species}")
+        
     recommendations = knowledge_base.generate_research_based_recommendations({}, selected_species)
     
     if recommendations:
         for i, rec in enumerate(recommendations):
-            st.write(f"**Recommendation {i+1}:** {rec.get('description', 'No description')}")
-            if 'rationale' in rec:
-                st.write(f"*Rationale:* {rec['rationale']}")
+            if st.session_state.language == 'English':
+                st.write(f"**Recommendation {i+1}:** {rec.get('description', 'No description')}")
+                if 'rationale' in rec:
+                    st.write(f"*Rationale:* {rec['rationale']}")
+            else:
+                st.write(f"**التوصية {i+1}:** {rec.get('description', 'لا يوجد وصف')}")
+                if 'rationale' in rec:
+                    st.write(f"*السبب:* {rec['rationale']}")
             st.write("---")
 
 # Add author credits at the bottom of the page
