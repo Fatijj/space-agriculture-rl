@@ -987,10 +987,7 @@ with tab3:
             
             # Display metrics
             with metrics_container:
-                if st.session_state.language == 'English':
-                    st.subheader("Test Metrics")
-                else:
-                    st.subheader("مقاييس الاختبار")
+                st.subheader("Test Metrics")
                 
                 # Calculate averages
                 avg_metrics = {}
@@ -1006,12 +1003,8 @@ with tab3:
                 col1, col2, col3 = st.columns(3)
                 
                 with col1:
-                    if st.session_state.language == 'English':
-                        st.metric("Avg. Reward", f"{avg_metrics['episode_reward']:.2f}")
-                        st.metric("Avg. Final Height", f"{avg_metrics['final_height']:.2f} cm")
-                    else:
-                        st.metric("متوسط المكافأة", f"{avg_metrics['episode_reward']:.2f}")
-                        st.metric("متوسط الارتفاع النهائي", f"{avg_metrics['final_height']:.2f} سم")
+                    st.metric("Avg. Reward", f"{avg_metrics['episode_reward']:.2f}")
+                    st.metric("Avg. Final Height", f"{avg_metrics['final_height']:.2f} cm")
                 
                 with col2:
                     if st.session_state.language == 'English':
