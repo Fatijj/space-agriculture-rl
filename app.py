@@ -1112,57 +1112,106 @@ with tab3:
                         st.error("لا توجد بيانات نمو متاحة للعرض")
                 
                 # Environmental parameters
-                st.subheader("Last Test Episode Environment")
+                if st.session_state.language == 'English':
+                    st.subheader("Last Test Episode Environment")
+                else:
+                    st.subheader("بيئة آخر اختبار")
+                    
                 env_data = visualize_environment_parameters(all_test_states[-1])
                 
                 if "error" not in env_data:
                     # Create tabs for different environment parameters
-                    env_tabs = st.tabs(["Temperature", "Light", "Water", "Other"])
+                    if st.session_state.language == 'English':
+                        env_tabs = st.tabs(["Temperature", "Light", "Water", "Other"])
+                    else:
+                        env_tabs = st.tabs(["درجة الحرارة", "الإضاءة", "الماء", "أخرى"])
                     
                     with env_tabs[0]:
-                        temp_chart = pd.DataFrame({
-                            'Day': env_data["steps"],
-                            'Temperature (°C)': env_data["temperature"]["values"]
-                        })
-                        st.line_chart(temp_chart.set_index('Day'))
+                        if st.session_state.language == 'English':
+                            temp_chart = pd.DataFrame({
+                                'Day': env_data["steps"],
+                                'Temperature (°C)': env_data["temperature"]["values"]
+                            })
+                            st.line_chart(temp_chart.set_index('Day'))
+                        else:
+                            temp_chart = pd.DataFrame({
+                                'اليوم': env_data["steps"],
+                                'درجة الحرارة (°م)': env_data["temperature"]["values"]
+                            })
+                            st.line_chart(temp_chart.set_index('اليوم'))
                     
                     with env_tabs[1]:
-                        light_chart = pd.DataFrame({
-                            'Day': env_data["steps"],
-                            'Light Intensity': env_data["light_intensity"]["values"]
-                        })
-                        st.line_chart(light_chart.set_index('Day'))
+                        if st.session_state.language == 'English':
+                            light_chart = pd.DataFrame({
+                                'Day': env_data["steps"],
+                                'Light Intensity': env_data["light_intensity"]["values"]
+                            })
+                            st.line_chart(light_chart.set_index('Day'))
+                        else:
+                            light_chart = pd.DataFrame({
+                                'اليوم': env_data["steps"],
+                                'شدة الإضاءة': env_data["light_intensity"]["values"]
+                            })
+                            st.line_chart(light_chart.set_index('اليوم'))
                     
                     with env_tabs[2]:
-                        water_chart = pd.DataFrame({
-                            'Day': env_data["steps"],
-                            'Water Content (%)': env_data["water_content"]["values"]
-                        })
-                        st.line_chart(water_chart.set_index('Day'))
+                        if st.session_state.language == 'English':
+                            water_chart = pd.DataFrame({
+                                'Day': env_data["steps"],
+                                'Water Content (%)': env_data["water_content"]["values"]
+                            })
+                            st.line_chart(water_chart.set_index('Day'))
+                        else:
+                            water_chart = pd.DataFrame({
+                                'اليوم': env_data["steps"],
+                                'محتوى الماء (%)': env_data["water_content"]["values"]
+                            })
+                            st.line_chart(water_chart.set_index('اليوم'))
                     
                     with env_tabs[3]:
                         # Create combined chart for other parameters
-                        other_chart = pd.DataFrame({
-                            'Day': env_data["steps"],
-                            'Radiation': env_data["radiation_level"]["values"],
-                            'CO2': [x/1000 for x in env_data["co2_level"]["values"]]  # Scale down for better visualization
-                        })
-                        st.line_chart(other_chart.set_index('Day'))
+                        if st.session_state.language == 'English':
+                            other_chart = pd.DataFrame({
+                                'Day': env_data["steps"],
+                                'Radiation': env_data["radiation_level"]["values"],
+                                'CO2': [x/1000 for x in env_data["co2_level"]["values"]]  # Scale down for better visualization
+                            })
+                            st.line_chart(other_chart.set_index('Day'))
+                        else:
+                            other_chart = pd.DataFrame({
+                                'اليوم': env_data["steps"],
+                                'الإشعاع': env_data["radiation_level"]["values"],
+                                'ثاني أكسيد الكربون': [x/1000 for x in env_data["co2_level"]["values"]]  # Scale down for better visualization
+                            })
+                            st.line_chart(other_chart.set_index('اليوم'))
                 else:
-                    st.error("No environment data available to visualize")
+                    if st.session_state.language == 'English':
+                        st.error("No environment data available to visualize")
+                    else:
+                        st.error("لا توجد بيانات بيئية متاحة للعرض")
     else:
         st.info("Train the agent first to test its performance!")
 
 # Plant Health Monitoring tab
 with tab4:
-    st.header("Plant Health Monitoring")
-    st.markdown("""
-    Monitor plant health in real-time using computer vision and disease detection.
-    Upload an image or use your camera to capture plants and receive diagnostic information.
-    The diagnosis will influence the reinforcement learning agent's decision making.
-    
-    *This system now incorporates the Plant Pathology 2020 dataset for improved accuracy in disease detection.*
-    """)
+    if st.session_state.language == 'English':
+        st.header("Plant Health Monitoring")
+        st.markdown("""
+        Monitor plant health in real-time using computer vision and disease detection.
+        Upload an image or use your camera to capture plants and receive diagnostic information.
+        The diagnosis will influence the reinforcement learning agent's decision making.
+        
+        *This system now incorporates the Plant Pathology 2020 dataset for improved accuracy in disease detection.*
+        """)
+    else:
+        st.header("مراقبة صحة النبات")
+        st.markdown("""
+        راقب صحة النبات في الوقت الفعلي باستخدام الرؤية الحاسوبية وكشف الأمراض.
+        قم بتحميل صورة أو استخدم الكاميرا لالتقاط النباتات وتلقي معلومات التشخيص.
+        سيؤثر التشخيص على عملية صنع القرار لوكيل التعلم المعزز.
+        
+        *يدمج هذا النظام الآن مجموعة بيانات علم الأمراض النباتية 2020 لتحسين دقة الكشف عن الأمراض.*
+        """)
     
     # Add information about the dataset in an expandable section
     with st.expander("About Plant Pathology Dataset"):
@@ -1214,46 +1263,69 @@ with tab4:
     
     with health_col1:
         # Image upload/capture area
-        st.subheader("Plant Image Input")
-        
-        # Option to upload an image or use camera
-        img_source = st.radio("Select image source:", ["Upload Image", "Use Camera"], index=0)
+        if st.session_state.language == 'English':
+            st.subheader("Plant Image Input")
+            # Option to upload an image or use camera
+            img_source = st.radio("Select image source:", ["Upload Image", "Use Camera"], index=0)
+        else:
+            st.subheader("إدخال صورة النبات")
+            # Option to upload an image or use camera in Arabic
+            img_source = st.radio("اختر مصدر الصورة:", ["تحميل صورة", "استخدام الكاميرا"], index=0)
         
         uploaded_image = None
         camera_image = None
         
-        if img_source == "Upload Image":
-            uploaded_image = st.file_uploader("Upload a plant image", type=["jpg", "jpeg", "png"])
+        if img_source in ["Upload Image", "تحميل صورة"]:
+            if st.session_state.language == 'English':
+                uploaded_image = st.file_uploader("Upload a plant image", type=["jpg", "jpeg", "png"])
+                caption = "Uploaded Image"
+                button_text = "Analyze Plant Health"
+            else:
+                uploaded_image = st.file_uploader("تحميل صورة النبات", type=["jpg", "jpeg", "png"])
+                caption = "الصورة المحملة"
+                button_text = "تحليل صحة النبات"
+                
             if uploaded_image is not None:
-                st.image(uploaded_image, caption="Uploaded Image", width=300)
+                st.image(uploaded_image, caption=caption, width=300)
                 
                 # Convert the uploaded file to numpy array
                 file_bytes = np.asarray(bytearray(uploaded_image.read()), dtype=np.uint8)
                 img_array = np.array(Image.open(uploaded_image))
                 
                 # Add button to analyze
-                if st.button("Analyze Plant Health", key="analyze_upload"):
+                if st.button(button_text, key="analyze_upload"):
                     predictions = st.session_state.disease_detector.predict(img_array)
                     diagnosis = st.session_state.disease_detector.get_diagnosis(predictions)
                     st.session_state.diagnosis_results = diagnosis
         else:
             # Camera input
-            camera_input = st.camera_input("Take a picture of the plant")
+            if st.session_state.language == 'English':
+                camera_input = st.camera_input("Take a picture of the plant")
+                caption = "Captured Image"
+                button_text = "Analyze Plant Health"
+            else:
+                camera_input = st.camera_input("التقط صورة للنبات")
+                caption = "الصورة الملتقطة"
+                button_text = "تحليل صحة النبات"
+                
             if camera_input is not None:
-                st.image(camera_input, caption="Captured Image", width=300)
+                st.image(camera_input, caption=caption, width=300)
                 
                 # Convert the camera input to numpy array
                 img_array = np.array(Image.open(camera_input))
                 
                 # Add button to analyze
-                if st.button("Analyze Plant Health", key="analyze_camera"):
+                if st.button(button_text, key="analyze_camera"):
                     predictions = st.session_state.disease_detector.predict(img_array)
                     diagnosis = st.session_state.disease_detector.get_diagnosis(predictions)
                     st.session_state.diagnosis_results = diagnosis
     
     with health_col2:
         # Display diagnosis results
-        st.subheader("Plant Health Diagnosis")
+        if st.session_state.language == 'English':
+            st.subheader("Plant Health Diagnosis")
+        else:
+            st.subheader("تشخيص صحة النبات")
         
         if st.session_state.diagnosis_results:
             diagnosis = st.session_state.diagnosis_results
@@ -1262,47 +1334,83 @@ with tab4:
             health_status = diagnosis.get('health_status', 'Unknown')
             if health_status == "Healthy":
                 status_color = "green"
+                arabic_status = "صحي"
             elif health_status == "Moderate Risk":
                 status_color = "orange"
+                arabic_status = "خطر متوسط"
             elif health_status == "Severe Risk":
                 status_color = "red"
+                arabic_status = "خطر شديد"
             else:  # Unknown
                 status_color = "gray"
-                
-            st.markdown(f"<h3 style='color:{status_color};'>Status: {health_status}</h3>", unsafe_allow_html=True)
+                arabic_status = "غير معروف"
             
-            # Display confidence level
-            st.write(f"Confidence: {diagnosis['confidence']*100:.1f}%")
+            if st.session_state.language == 'English':
+                st.markdown(f"<h3 style='color:{status_color};'>Status: {health_status}</h3>", unsafe_allow_html=True)
+                # Display confidence level
+                st.write(f"Confidence: {diagnosis['confidence']*100:.1f}%")
+            else:
+                st.markdown(f"<h3 style='color:{status_color};'>الحالة: {arabic_status}</h3>", unsafe_allow_html=True)
+                # Display confidence level in Arabic
+                st.write(f"الثقة: {diagnosis['confidence']*100:.1f}%")
             
             # Display disease information if detected
             if 'disease_name' in diagnosis and diagnosis['disease_name'] != "None":
-                st.write(f"**Detected Issue:** {diagnosis['disease_name']}")
-                st.write(f"**Severity:** {diagnosis['disease_severity']*100:.1f}%")
-                
-                # Display recommendations
-                st.subheader("Recommendations")
+                if st.session_state.language == 'English':
+                    st.write(f"**Detected Issue:** {diagnosis['disease_name']}")
+                    st.write(f"**Severity:** {diagnosis['disease_severity']*100:.1f}%")
+                    
+                    # Display recommendations
+                    st.subheader("Recommendations")
+                else:
+                    st.write(f"**المشكلة المكتشفة:** {diagnosis['disease_name']}")
+                    st.write(f"**الشدة:** {diagnosis['disease_severity']*100:.1f}%")
+                    
+                    # Display recommendations
+                    st.subheader("التوصيات")
+                    
                 for i, recommendation in enumerate(diagnosis['recommendations']):
                     st.write(f"{i+1}. {recommendation}")
                     
             # Action to apply to environment
-            if st.button("Apply Diagnosis to Environment", key="apply_diagnosis"):
+            if st.session_state.language == 'English':
+                button_text = "Apply Diagnosis to Environment"
+            else:
+                button_text = "تطبيق التشخيص على البيئة"
+                
+            if st.button(button_text, key="apply_diagnosis"):
                 if st.session_state.env is not None:
                     disease_modifier = st.session_state.env.update_disease_modifier(diagnosis)
-                    st.success(f"Applied disease status to environment. Reward modifier: {disease_modifier:.2f}")
+                    if st.session_state.language == 'English':
+                        st.success(f"Applied disease status to environment. Reward modifier: {disease_modifier:.2f}")
+                    else:
+                        st.success(f"تم تطبيق حالة المرض على البيئة. مُعدِّل المكافأة: {disease_modifier:.2f}")
                 else:
                     # Create a temporary environment just to show the modifier value
                     from space_agriculture_rl import SpaceAgricultureEnv
                     temp_env = SpaceAgricultureEnv(st.session_state.plant_data, st.session_state.selected_species)
                     disease_modifier = temp_env.update_disease_modifier(diagnosis)
-                    st.success(f"Diagnosis recorded. If you train an agent, this will apply a reward modifier of: {disease_modifier:.2f}")
-                    st.info("For full functionality, train an agent in the Training tab to create a persistent environment.")
+                    if st.session_state.language == 'English':
+                        st.success(f"Diagnosis recorded. If you train an agent, this will apply a reward modifier of: {disease_modifier:.2f}")
+                        st.info("For full functionality, train an agent in the Training tab to create a persistent environment.")
+                    else:
+                        st.success(f"تم تسجيل التشخيص. إذا قمت بتدريب وكيل، فسيتم تطبيق مُعدِّل المكافأة: {disease_modifier:.2f}")
+                        st.info("للحصول على الوظائف الكاملة، قم بتدريب وكيل في علامة التبويب 'التدريب' لإنشاء بيئة مستمرة.")
         else:
-            st.info("No diagnosis available. Please upload or capture an image and analyze it.")
+            if st.session_state.language == 'English':
+                st.info("No diagnosis available. Please upload or capture an image and analyze it.")
+            else:
+                st.info("لا يوجد تشخيص متاح. يرجى تحميل صورة أو التقاط صورة وتحليلها.")
             
         # Historical diagnoses section
-        with st.expander("Historical Disease Data"):
-            st.write("This section will show historical disease detection data.")
-            # This would be populated with real data in a full implementation
+        if st.session_state.language == 'English':
+            with st.expander("Historical Disease Data"):
+                st.write("This section will show historical disease detection data.")
+                # This would be populated with real data in a full implementation
+        else:
+            with st.expander("بيانات الأمراض التاريخية"):
+                st.write("سيعرض هذا القسم بيانات كشف الأمراض التاريخية.")
+                # This would be populated with real data in a full implementation
 
 # Results tab
 with tab5:
