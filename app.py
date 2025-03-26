@@ -79,40 +79,15 @@ st.set_page_config(
 # Application title
 st.title("🚀 Space Agriculture Reinforcement Learning System")
 
-# Initialize language in session state if not exist
-if 'language' not in st.session_state:
-    st.session_state.language = 'English'
+# Set language to English
+st.session_state.language = 'English'
 
-# Language selector buttons (right below the title)
-eng_button, ar_button = st.columns([1, 1])
-with eng_button:
-    if st.button("🇺🇸 English", use_container_width=True, 
-                type="primary" if st.session_state.language == 'English' else "secondary"):
-        st.session_state.language = 'English'
-        st.rerun()
-        
-with ar_button:
-    if st.button("🇦🇪 العربية", use_container_width=True, 
-                type="primary" if st.session_state.language == 'Arabic' else "secondary"):
-        st.session_state.language = 'Arabic'
-        st.rerun()
-
-# Application description based on selected language
-if st.session_state.language == 'English':
-    st.markdown("""
-    Optimize plant growth conditions in space environments using reinforcement learning.
-    This application simulates different plant species growing in space conditions and trains
-    an AI agent to find the optimal environmental settings.
-    """)
-else:
-    # Arabic description
-    st.markdown("""
-    <div dir="rtl" style="text-align: right;">
-    تحسين ظروف نمو النباتات في بيئات الفضاء باستخدام التعلم المعزز.
-    يحاكي هذا التطبيق أنواعًا مختلفة من النباتات التي تنمو في ظروف الفضاء ويدرب
-    وكيل ذكاء اصطناعي لإيجاد الإعدادات البيئية المثلى.
-    </div>
-    """, unsafe_allow_html=True)
+# Application description
+st.markdown("""
+Optimize plant growth conditions in space environments using reinforcement learning.
+This application simulates different plant species growing in space conditions and trains
+an AI agent to find the optimal environmental settings.
+""")
 
 # Initialize session state for storing simulation data
 if 'plant_data' not in st.session_state:
@@ -142,40 +117,25 @@ if 'disease_detector' not in st.session_state:
 if 'diagnosis_results' not in st.session_state:
     st.session_state.diagnosis_results = None
 
-# Sidebar for configuration with bilingual support
-if st.session_state.language == 'English':
-    st.sidebar.header("Configuration")
-else:
-    st.sidebar.header("الإعدادات")
+# Sidebar for configuration
+st.sidebar.header("Configuration")
 
-# Plant species selection with bilingual support
+# Plant species selection
 species_options = ['Dwarf Wheat', 'Cherry Tomato', 'Lettuce', 'Space Potato']
 # Store selected species in session state so it's available across the app
-if st.session_state.language == 'English':
-    plant_label = "Select Plant Species"
-else:
-    plant_label = "اختر نوع النبات"
+plant_label = "Select Plant Species"
 selected_species = st.sidebar.selectbox(plant_label, species_options)
 st.session_state.selected_species = selected_species
 
-# Agent selection with bilingual support
-if st.session_state.language == 'English':
-    agent_label = "Select Agent Type"
-    agent_options = ["DQN (Deep Q-Network)", "PPO (Proximal Policy Optimization)"]
-else:
-    agent_label = "اختر نوع العميل"
-    agent_options = ["DQN (شبكة Q العميقة)", "PPO (تحسين السياسات المتقاربة)"]
+# Agent selection
+agent_label = "Select Agent Type"
+agent_options = ["DQN (Deep Q-Network)", "PPO (Proximal Policy Optimization)"]
 agent_type = st.sidebar.selectbox(agent_label, agent_options)
 
-# Training parameters with bilingual support
-if st.session_state.language == 'English':
-    st.sidebar.subheader("Training Parameters")
-    episodes_label = "Number of Episodes"
-    steps_label = "Max Steps per Episode"
-else:
-    st.sidebar.subheader("معايير التدريب")
-    episodes_label = "عدد الجلسات"
-    steps_label = "الحد الأقصى للخطوات في كل جلسة"
+# Training parameters
+st.sidebar.subheader("Training Parameters")
+episodes_label = "Number of Episodes"
+steps_label = "Max Steps per Episode"
 num_episodes = st.sidebar.slider(episodes_label, 10, 500, 100)
 max_steps_per_episode = st.sidebar.slider(steps_label, 30, 200, 50)
 
@@ -202,15 +162,10 @@ if custom_env_params:
     water_range = st.sidebar.slider("Water Content Range (%)", 10, 100, (60, 85), 5)
     radiation_range = st.sidebar.slider("Radiation Level Range", 0, 100, (0, 30), 5)
 
-# Main content area with tabs - bilingual support
-if st.session_state.language == 'English':
-    tab_names = [
-        "Training", "Visualization", "Testing", "Plant Health", "Results", "Research"
-    ]
-else:
-    tab_names = [
-        "التدريب", "التصور", "الاختبار", "صحة النبات", "النتائج", "البحث"
-    ]
+# Main content area with tabs
+tab_names = [
+    "Training", "Visualization", "Testing", "Plant Health", "Results", "Research"
+]
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(tab_names)
 
 # Training tab
