@@ -116,6 +116,9 @@ if 'disease_detector' not in st.session_state:
     
 if 'diagnosis_results' not in st.session_state:
     st.session_state.diagnosis_results = None
+    
+if 'raw_predictions' not in st.session_state:
+    st.session_state.raw_predictions = None
 
 # Sidebar for configuration
 st.sidebar.header("Configuration")
@@ -1149,24 +1152,14 @@ with tab3:
 
 # Plant Health Monitoring tab
 with tab4:
-    if st.session_state.language == 'English':
-        st.header("Plant Health Monitoring")
-        st.markdown("""
-        Monitor plant health in real-time using computer vision and disease detection.
-        Upload an image or use your camera to capture plants and receive diagnostic information.
-        The diagnosis will influence the reinforcement learning agent's decision making.
-        
-        *This system now incorporates the Plant Pathology 2020 dataset for improved accuracy in disease detection.*
-        """)
-    else:
-        st.header("مراقبة صحة النبات")
-        st.markdown("""
-        راقب صحة النبات في الوقت الفعلي باستخدام الرؤية الحاسوبية وكشف الأمراض.
-        قم بتحميل صورة أو استخدم الكاميرا لالتقاط النباتات وتلقي معلومات التشخيص.
-        سيؤثر التشخيص على عملية صنع القرار لوكيل التعلم المعزز.
-        
-        *يدمج هذا النظام الآن مجموعة بيانات علم الأمراض النباتية 2020 لتحسين دقة الكشف عن الأمراض.*
-        """)
+    st.header("Plant Health Monitoring")
+    st.markdown("""
+    Monitor plant health in real-time using computer vision and disease detection.
+    Upload an image or use your camera to capture plants and receive diagnostic information.
+    The diagnosis will influence the reinforcement learning agent's decision making.
+    
+    *This system now incorporates the Plant Pathology 2020 dataset for improved accuracy in disease detection.*
+    """)
     
     # Add information about the dataset in an expandable section
     with st.expander("About Plant Pathology Dataset"):
@@ -1218,27 +1211,17 @@ with tab4:
     
     with health_col1:
         # Image upload/capture area
-        if st.session_state.language == 'English':
-            st.subheader("Plant Image Input")
-            # Option to upload an image or use camera
-            img_source = st.radio("Select image source:", ["Upload Image", "Use Camera"], index=0)
-        else:
-            st.subheader("إدخال صورة النبات")
-            # Option to upload an image or use camera in Arabic
-            img_source = st.radio("اختر مصدر الصورة:", ["تحميل صورة", "استخدام الكاميرا"], index=0)
+        st.subheader("Plant Image Input")
+        # Option to upload an image or use camera
+        img_source = st.radio("Select image source:", ["Upload Image", "Use Camera"], index=0)
         
         uploaded_image = None
         camera_image = None
         
-        if img_source in ["Upload Image", "تحميل صورة"]:
-            if st.session_state.language == 'English':
-                uploaded_image = st.file_uploader("Upload a plant image", type=["jpg", "jpeg", "png"])
-                caption = "Uploaded Image"
-                button_text = "Analyze Plant Health"
-            else:
-                uploaded_image = st.file_uploader("تحميل صورة النبات", type=["jpg", "jpeg", "png"])
-                caption = "الصورة المحملة"
-                button_text = "تحليل صحة النبات"
+        if img_source == "Upload Image":
+            uploaded_image = st.file_uploader("Upload a plant image", type=["jpg", "jpeg", "png"])
+            caption = "Uploaded Image"
+            button_text = "Analyze Plant Health"
                 
             if uploaded_image is not None:
                 st.image(uploaded_image, caption=caption, width=300)
@@ -1252,16 +1235,13 @@ with tab4:
                     predictions = st.session_state.disease_detector.predict(img_array)
                     diagnosis = st.session_state.disease_detector.get_diagnosis(predictions)
                     st.session_state.diagnosis_results = diagnosis
+                    # Store raw predictions in session state for the disease table
+                    st.session_state.raw_predictions = predictions
         else:
             # Camera input
-            if st.session_state.language == 'English':
-                camera_input = st.camera_input("Take a picture of the plant")
-                caption = "Captured Image"
-                button_text = "Analyze Plant Health"
-            else:
-                camera_input = st.camera_input("التقط صورة للنبات")
-                caption = "الصورة الملتقطة"
-                button_text = "تحليل صحة النبات"
+            camera_input = st.camera_input("Take a picture of the plant")
+            caption = "Captured Image"
+            button_text = "Analyze Plant Health"
                 
             if camera_input is not None:
                 st.image(camera_input, caption=caption, width=300)
@@ -1274,13 +1254,12 @@ with tab4:
                     predictions = st.session_state.disease_detector.predict(img_array)
                     diagnosis = st.session_state.disease_detector.get_diagnosis(predictions)
                     st.session_state.diagnosis_results = diagnosis
+                    # Store raw predictions in session state for the disease table
+                    st.session_state.raw_predictions = predictions
     
     with health_col2:
         # Display diagnosis results
-        if st.session_state.language == 'English':
-            st.subheader("Plant Health Diagnosis")
-        else:
-            st.subheader("تشخيص صحة النبات")
+        st.subheader("Plant Health Diagnosis")
         
         if st.session_state.diagnosis_results:
             diagnosis = st.session_state.diagnosis_results
@@ -1289,83 +1268,90 @@ with tab4:
             health_status = diagnosis.get('health_status', 'Unknown')
             if health_status == "Healthy":
                 status_color = "green"
-                arabic_status = "صحي"
+                status_emoji = "✅"
             elif health_status == "Moderate Risk":
                 status_color = "orange"
-                arabic_status = "خطر متوسط"
+                status_emoji = "⚠️"
             elif health_status == "Severe Risk":
                 status_color = "red"
-                arabic_status = "خطر شديد"
+                status_emoji = "🚨"
             else:  # Unknown
                 status_color = "gray"
-                arabic_status = "غير معروف"
+                status_emoji = "❓"
             
-            if st.session_state.language == 'English':
-                st.markdown(f"<h3 style='color:{status_color};'>Status: {health_status}</h3>", unsafe_allow_html=True)
-                # Display confidence level
-                st.write(f"Confidence: {diagnosis['confidence']*100:.1f}%")
-            else:
-                st.markdown(f"<h3 style='color:{status_color};'>الحالة: {arabic_status}</h3>", unsafe_allow_html=True)
-                # Display confidence level in Arabic
-                st.write(f"الثقة: {diagnosis['confidence']*100:.1f}%")
+            st.markdown(f"<h3 style='color:{status_color};'>{status_emoji} Status: {health_status}</h3>", unsafe_allow_html=True)
+            
+            # Display confidence level
+            st.write(f"Confidence: {diagnosis['confidence']*100:.1f}%")
+            
+            # Add Disease Detection Table
+            if st.session_state.raw_predictions:
+                st.subheader("Disease Detection Analysis")
+                
+                # Create a DataFrame for the disease probabilities
+                predictions = st.session_state.raw_predictions
+                disease_df = pd.DataFrame({
+                    "Condition": [k.replace('_', ' ').title() for k in predictions.keys()],
+                    "Probability": [f"{v*100:.1f}%" for v in predictions.values()],
+                    "Value": list(predictions.values())  # Hidden column for sorting
+                })
+                
+                # Sort by probability (highest first)
+                disease_df = disease_df.sort_values(by="Value", ascending=False).reset_index(drop=True)
+                
+                # Display the dataframe without the hidden Value column
+                st.dataframe(disease_df[["Condition", "Probability"]])
+                
+                # Add conclusion based on highest probability
+                highest_condition = disease_df.iloc[0]["Condition"]
+                highest_prob = disease_df.iloc[0]["Value"] * 100
+                
+                conclusion_color = "green"
+                if highest_condition != "Healthy":
+                    if highest_prob > 60:
+                        conclusion_color = "red"
+                    else:
+                        conclusion_color = "orange"
+                        
+                st.markdown(f"""
+                <div style='background-color: #f5f5f5; padding: 10px; border-radius: 5px; border-left: 5px solid {conclusion_color};'>
+                    <b>Conclusion:</b> Plant is most likely <span style='color: {conclusion_color};'><b>{highest_condition}</b></span> 
+                    with {highest_prob:.1f}% probability.
+                </div>
+                """, unsafe_allow_html=True)
             
             # Display disease information if detected
             if 'disease_name' in diagnosis and diagnosis['disease_name'] != "None":
-                if st.session_state.language == 'English':
-                    st.write(f"**Detected Issue:** {diagnosis['disease_name']}")
-                    st.write(f"**Severity:** {diagnosis['disease_severity']*100:.1f}%")
-                    
-                    # Display recommendations
-                    st.subheader("Recommendations")
-                else:
-                    st.write(f"**المشكلة المكتشفة:** {diagnosis['disease_name']}")
-                    st.write(f"**الشدة:** {diagnosis['disease_severity']*100:.1f}%")
-                    
-                    # Display recommendations
-                    st.subheader("التوصيات")
-                    
+                st.write(f"**Detected Issue:** {diagnosis['disease_name']}")
+                st.write(f"**Severity:** {diagnosis['disease_severity']*100:.1f}%")
+                
+                # Display recommendations
+                st.subheader("Recommendations")
+                
                 for i, recommendation in enumerate(diagnosis['recommendations']):
                     st.write(f"{i+1}. {recommendation}")
                     
             # Action to apply to environment
-            if st.session_state.language == 'English':
-                button_text = "Apply Diagnosis to Environment"
-            else:
-                button_text = "تطبيق التشخيص على البيئة"
+            button_text = "Apply Diagnosis to Environment"
                 
             if st.button(button_text, key="apply_diagnosis"):
                 if st.session_state.env is not None:
                     disease_modifier = st.session_state.env.update_disease_modifier(diagnosis)
-                    if st.session_state.language == 'English':
-                        st.success(f"Applied disease status to environment. Reward modifier: {disease_modifier:.2f}")
-                    else:
-                        st.success(f"تم تطبيق حالة المرض على البيئة. مُعدِّل المكافأة: {disease_modifier:.2f}")
+                    st.success(f"Applied disease status to environment. Reward modifier: {disease_modifier:.2f}")
                 else:
                     # Create a temporary environment just to show the modifier value
                     from space_agriculture_rl import SpaceAgricultureEnv
                     temp_env = SpaceAgricultureEnv(st.session_state.plant_data, st.session_state.selected_species)
                     disease_modifier = temp_env.update_disease_modifier(diagnosis)
-                    if st.session_state.language == 'English':
-                        st.success(f"Diagnosis recorded. If you train an agent, this will apply a reward modifier of: {disease_modifier:.2f}")
-                        st.info("For full functionality, train an agent in the Training tab to create a persistent environment.")
-                    else:
-                        st.success(f"تم تسجيل التشخيص. إذا قمت بتدريب وكيل، فسيتم تطبيق مُعدِّل المكافأة: {disease_modifier:.2f}")
-                        st.info("للحصول على الوظائف الكاملة، قم بتدريب وكيل في علامة التبويب 'التدريب' لإنشاء بيئة مستمرة.")
+                    st.success(f"Diagnosis recorded. If you train an agent, this will apply a reward modifier of: {disease_modifier:.2f}")
+                    st.info("For full functionality, train an agent in the Training tab to create a persistent environment.")
         else:
-            if st.session_state.language == 'English':
-                st.info("No diagnosis available. Please upload or capture an image and analyze it.")
-            else:
-                st.info("لا يوجد تشخيص متاح. يرجى تحميل صورة أو التقاط صورة وتحليلها.")
+            st.info("No diagnosis available. Please upload or capture an image and analyze it.")
             
         # Historical diagnoses section
-        if st.session_state.language == 'English':
-            with st.expander("Historical Disease Data"):
-                st.write("This section will show historical disease detection data.")
-                # This would be populated with real data in a full implementation
-        else:
-            with st.expander("بيانات الأمراض التاريخية"):
-                st.write("سيعرض هذا القسم بيانات كشف الأمراض التاريخية.")
-                # This would be populated with real data in a full implementation
+        with st.expander("Historical Disease Data"):
+            st.write("This section will show historical disease detection data.")
+            # This would be populated with real data in a full implementation
 
 # Results tab
 with tab5:
