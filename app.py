@@ -873,7 +873,7 @@ with tab3:
                     test_result_area.markdown(f"""
                     <div style="background-color: #f7f9fc; padding: 15px; border-radius: 10px; border-left: 5px solid #2E8B57;">
                         <h3 style="text-align: center; color: #2E8B57; font-size: 1.2rem;">
-                            Test Results | نتائج الاختبار
+                            Test Results
                         </h3>
                         
                         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 15px;">
@@ -916,7 +916,7 @@ with tab3:
                         
                         <details>
                             <summary style="margin-top: 10px; color: #2E8B57; cursor: pointer; font-weight: bold;">
-                                Additional Parameters | معلومات إضافية
+                                Additional Parameters
                             </summary>
                             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px;">
                                 <div style="border-bottom: 1px solid #eaecef; padding: 8px;">
@@ -1746,8 +1746,7 @@ with tab6:
     4. International Space Station Results: "Veggie and Advanced Plant Habitat Experiments"
     5. Frontiers in Plant Science: "Nutrient Delivery Systems for Microgravity Agriculture"
     
-    These research findings have been incorporated into our reinforcement learning system to enhance
-    the agent's understanding of optimal growing conditions in space environments.
+    These research findings provide valuable insights into optimal growing conditions in space environments.
     """)
     
     # Integration with RL agent explanation

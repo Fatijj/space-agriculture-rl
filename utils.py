@@ -410,8 +410,11 @@ def generate_growth_heatmap(agent, env, param1, param2, save_path=None):
                 test_state['health_score']
             ], dtype=np.float32)
             
-            # Get agent's action for this state
-            action = agent.act(test_obs, explore=False)
+            # Get agent's action for this state - handle different agent types
+            if hasattr(agent, 'act'):
+                action = agent.act(test_obs, explore=False)
+            elif hasattr(agent, 'get_action'):
+                action = agent.get_action(test_obs)
             
             # Use environment's internal models to predict outcomes
             # Get the right optimal ranges for the species
