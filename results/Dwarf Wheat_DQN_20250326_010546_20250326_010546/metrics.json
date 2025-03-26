@@ -1,0 +1,18 @@
+{
+  "final_height": 10.998931472091403,
+  "growth_rate": 0.0,
+  "fruit_count": 1,
+  "final_health": 0.7787901322862323,
+  "avg_health": 0.7787901322862323,
+  "growth_stage": "fruiting",
+  "temperature_optimal_time_pct": 100.0,
+  "light_optimal_time_pct": 100.0,
+  "water_optimal_time_pct": 0.0,
+  "radiation_optimal_time_pct": 0.0,
+  "total_steps": 42,
+  "total_temp_adjustments": 0.0,
+  "total_light_adjustments": 0.0,
+  "total_water_adjustments": 0.0,
+  "final_reward": -410.0,
+  "avg_reward": -409.94344562430086
+}
