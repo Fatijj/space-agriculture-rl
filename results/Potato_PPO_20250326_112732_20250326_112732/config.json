@@ -1,0 +1,11 @@
+{
+  "species": "Potato",
+  "agent_type": "PPO (Proximal Policy Optimization)",
+  "num_episodes": 100,
+  "max_steps": 50,
+  "learning_rate": 0.001,
+  "batch_size": 64,
+  "exploration_decay": 0.995,
+  "randomize_initial_state": true,
+  "custom_env_params": false
+}

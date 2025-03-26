@@ -973,13 +973,14 @@ with tab3:
                 </div>
                 """, unsafe_allow_html=True)
             else:
+                # Always use English for completion message regardless of language setting
                 test_result_area.markdown(f"""
                 <div style="background-color: #e8f4ea; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px;">
                     <h3 style="color: #2E8B57; margin-bottom: 10px;">
-                        اكتمل الاختبار!
+                        Testing Completed!
                     </h3>
                     <div style="font-size: 1.1rem;">
-                        <span>متوسط المكافأة: </span>
+                        <span>Average Reward: </span>
                         <span style="font-weight: bold; color: #2E8B57;">{sum(all_test_rewards)/len(all_test_rewards):.2f}</span>
                     </div>
                 </div>
@@ -1366,11 +1367,47 @@ with tab5:
             
             # Configuration
             with st.expander("Configuration", expanded=True):
-                st.json(experiment['config'])
+                # Create a cleaner display for configuration
+                config = experiment['config']
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("### Basic Settings")
+                    st.write(f"**Species:** {config.get('species', 'Unknown')}")
+                    st.write(f"**Agent Type:** {config.get('agent_type', 'Unknown')}")
+                    st.write(f"**Episodes:** {config.get('episodes', 0)}")
+                    st.write(f"**Max Steps:** {config.get('max_steps', 0)}")
+                
+                with col2:
+                    st.markdown("### Learning Parameters")
+                    st.write(f"**Learning Rate:** {config.get('learning_rate', 0)}")
+                    st.write(f"**Batch Size:** {config.get('batch_size', 0)}")
+                    st.write(f"**Exploration Rate:** {config.get('exploration_rate', 0)}")
+                    st.write(f"**Timestamp:** {config.get('timestamp', 'Unknown')}")
             
             # Metrics
             with st.expander("Performance Metrics", expanded=True):
-                st.json(experiment['metrics'])
+                # Create a cleaner display for metrics
+                metrics = experiment['metrics']
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.markdown("### Growth Metrics")
+                    st.metric("Final Height", f"{metrics.get('final_height', 0):.2f} cm")
+                    st.metric("Growth Rate", f"{metrics.get('growth_rate', 0):.4f} cm/day")
+                    st.metric("Fruit Count", f"{metrics.get('fruit_count', 0)}")
+                
+                with col2:
+                    st.markdown("### Health Metrics")
+                    st.metric("Final Health", f"{metrics.get('final_health', 0):.2f}")
+                    st.metric("Average Health", f"{metrics.get('avg_health', 0):.2f}")
+                    st.metric("Growth Stage", f"{metrics.get('growth_stage', 'Unknown')}")
+                
+                with col3:
+                    st.markdown("### Optimal Conditions")
+                    st.metric("Temperature Optimal Time", f"{metrics.get('temperature_optimal_time_pct', 0):.1f}%")
+                    st.metric("Light Optimal Time", f"{metrics.get('light_optimal_time_pct', 0):.1f}%")
+                    st.metric("Water Optimal Time", f"{metrics.get('water_optimal_time_pct', 0):.1f}%")
             
             # Visualizations
             st.subheader("Visualizations")
@@ -1764,25 +1801,7 @@ with tab6:
     with established research knowledge.
     """)
     
-    # Show knowledge base influence on selected species
-    if st.session_state.language == 'English':
-        st.subheader(f"Research-Based Recommendations for {selected_species}")
-    else:
-        st.subheader(f"التوصيات المستندة إلى البحث لنبات {selected_species}")
-        
-    recommendations = knowledge_base.generate_research_based_recommendations({}, selected_species)
-    
-    if recommendations:
-        for i, rec in enumerate(recommendations):
-            if st.session_state.language == 'English':
-                st.write(f"**Recommendation {i+1}:** {rec.get('description', 'No description')}")
-                if 'rationale' in rec:
-                    st.write(f"*Rationale:* {rec['rationale']}")
-            else:
-                st.write(f"**التوصية {i+1}:** {rec.get('description', 'لا يوجد وصف')}")
-                if 'rationale' in rec:
-                    st.write(f"*السبب:* {rec['rationale']}")
-            st.write("---")
+    # Space for future content
 
 # Add author credits at the bottom of the page
 st.markdown("""---""")
