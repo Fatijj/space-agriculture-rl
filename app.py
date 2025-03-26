@@ -78,11 +78,68 @@ st.set_page_config(
 
 # Application title
 st.title("🚀 Space Agriculture Reinforcement Learning System")
-st.markdown("""
-Optimize plant growth conditions in space environments using reinforcement learning.
-This application simulates different plant species growing in space conditions and trains
-an AI agent to find the optimal environmental settings.
-""")
+
+# Initialize language in session state if not exist
+if 'language' not in st.session_state:
+    st.session_state.language = 'English'
+
+# Unique language switcher with custom styling
+language_col1, language_col2 = st.columns([6, 1])
+with language_col2:
+    # Create a unique language switcher button with custom styling
+    language_options = ["English", "Arabic - العربية"] 
+    current_lang_index = 0 if st.session_state.language == 'English' else 1
+    
+    # Custom CSS for the language selector
+    st.markdown("""
+    <style>
+    div[data-testid="stSelectbox"] {
+        background: linear-gradient(to right, #2E8B57, #3CB371);
+        border-radius: 10px;
+        padding: 2px;
+        border: none;
+    }
+    div[data-testid="stSelectbox"] > div > div {
+        background-color: transparent;
+        color: white;
+        font-weight: bold;
+    }
+    div[data-testid="stSelectbox"] > div {
+        background-color: transparent;
+        border: none;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    selected_language = st.selectbox(
+        "", 
+        options=language_options,
+        index=current_lang_index,
+        key="language_selector",
+        label_visibility="collapsed"
+    )
+    
+    # Update the language in session state when changed
+    if selected_language != language_options[current_lang_index]:
+        st.session_state.language = 'English' if selected_language == 'English' else 'Arabic'
+        st.rerun()  # Refresh the app to apply language change
+
+# Application description based on selected language
+if st.session_state.language == 'English':
+    st.markdown("""
+    Optimize plant growth conditions in space environments using reinforcement learning.
+    This application simulates different plant species growing in space conditions and trains
+    an AI agent to find the optimal environmental settings.
+    """)
+else:
+    # Arabic description
+    st.markdown("""
+    <div dir="rtl" style="text-align: right;">
+    تحسين ظروف نمو النباتات في بيئات الفضاء باستخدام التعلم المعزز.
+    يحاكي هذا التطبيق أنواعًا مختلفة من النباتات التي تنمو في ظروف الفضاء ويدرب
+    وكيل ذكاء اصطناعي لإيجاد الإعدادات البيئية المثلى.
+    </div>
+    """, unsafe_allow_html=True)
 
 # Initialize session state for storing simulation data
 if 'plant_data' not in st.session_state:
