@@ -83,46 +83,19 @@ st.title("🚀 Space Agriculture Reinforcement Learning System")
 if 'language' not in st.session_state:
     st.session_state.language = 'English'
 
-# Unique language switcher with custom styling
-language_col1, language_col2 = st.columns([6, 1])
-with language_col2:
-    # Create a unique language switcher button with custom styling
-    language_options = ["English", "Arabic - العربية"] 
-    current_lang_index = 0 if st.session_state.language == 'English' else 1
-    
-    # Custom CSS for the language selector
-    st.markdown("""
-    <style>
-    div[data-testid="stSelectbox"] {
-        background: linear-gradient(to right, #2E8B57, #3CB371);
-        border-radius: 10px;
-        padding: 2px;
-        border: none;
-    }
-    div[data-testid="stSelectbox"] > div > div {
-        background-color: transparent;
-        color: white;
-        font-weight: bold;
-    }
-    div[data-testid="stSelectbox"] > div {
-        background-color: transparent;
-        border: none;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    selected_language = st.selectbox(
-        "", 
-        options=language_options,
-        index=current_lang_index,
-        key="language_selector",
-        label_visibility="collapsed"
-    )
-    
-    # Update the language in session state when changed
-    if selected_language != language_options[current_lang_index]:
-        st.session_state.language = 'English' if selected_language == 'English' else 'Arabic'
-        st.rerun()  # Refresh the app to apply language change
+# Language selector buttons (right below the title)
+eng_button, ar_button = st.columns([1, 1])
+with eng_button:
+    if st.button("🇺🇸 English", use_container_width=True, 
+                type="primary" if st.session_state.language == 'English' else "secondary"):
+        st.session_state.language = 'English'
+        st.rerun()
+        
+with ar_button:
+    if st.button("🇦🇪 العربية", use_container_width=True, 
+                type="primary" if st.session_state.language == 'Arabic' else "secondary"):
+        st.session_state.language = 'Arabic'
+        st.rerun()
 
 # Application description based on selected language
 if st.session_state.language == 'English':
@@ -169,22 +142,42 @@ if 'disease_detector' not in st.session_state:
 if 'diagnosis_results' not in st.session_state:
     st.session_state.diagnosis_results = None
 
-# Sidebar for configuration
-st.sidebar.header("Configuration")
+# Sidebar for configuration with bilingual support
+if st.session_state.language == 'English':
+    st.sidebar.header("Configuration")
+else:
+    st.sidebar.header("الإعدادات")
 
-# Plant species selection
+# Plant species selection with bilingual support
 species_options = ['Dwarf Wheat', 'Cherry Tomato', 'Lettuce', 'Space Potato']
 # Store selected species in session state so it's available across the app
-selected_species = st.sidebar.selectbox("Select Plant Species", species_options)
+if st.session_state.language == 'English':
+    plant_label = "Select Plant Species"
+else:
+    plant_label = "اختر نوع النبات"
+selected_species = st.sidebar.selectbox(plant_label, species_options)
 st.session_state.selected_species = selected_species
 
-# Agent selection
-agent_type = st.sidebar.selectbox("Select Agent Type", ["DQN (Deep Q-Network)", "PPO (Proximal Policy Optimization)"])
+# Agent selection with bilingual support
+if st.session_state.language == 'English':
+    agent_label = "Select Agent Type"
+    agent_options = ["DQN (Deep Q-Network)", "PPO (Proximal Policy Optimization)"]
+else:
+    agent_label = "اختر نوع العميل"
+    agent_options = ["DQN (شبكة Q العميقة)", "PPO (تحسين السياسات المتقاربة)"]
+agent_type = st.sidebar.selectbox(agent_label, agent_options)
 
-# Training parameters
-st.sidebar.subheader("Training Parameters")
-num_episodes = st.sidebar.slider("Number of Episodes", 10, 500, 100)
-max_steps_per_episode = st.sidebar.slider("Max Steps per Episode", 30, 200, 50)
+# Training parameters with bilingual support
+if st.session_state.language == 'English':
+    st.sidebar.subheader("Training Parameters")
+    episodes_label = "Number of Episodes"
+    steps_label = "Max Steps per Episode"
+else:
+    st.sidebar.subheader("معايير التدريب")
+    episodes_label = "عدد الجلسات"
+    steps_label = "الحد الأقصى للخطوات في كل جلسة"
+num_episodes = st.sidebar.slider(episodes_label, 10, 500, 100)
+max_steps_per_episode = st.sidebar.slider(steps_label, 30, 200, 50)
 
 # Advanced parameters collapsible section
 with st.sidebar.expander("Advanced Parameters"):
@@ -209,10 +202,16 @@ if custom_env_params:
     water_range = st.sidebar.slider("Water Content Range (%)", 10, 100, (60, 85), 5)
     radiation_range = st.sidebar.slider("Radiation Level Range", 0, 100, (0, 30), 5)
 
-# Main content area with tabs
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "Training", "Visualization", "Testing", "Plant Health", "Results", "Research"
-])
+# Main content area with tabs - bilingual support
+if st.session_state.language == 'English':
+    tab_names = [
+        "Training", "Visualization", "Testing", "Plant Health", "Results", "Research"
+    ]
+else:
+    tab_names = [
+        "التدريب", "التصور", "الاختبار", "صحة النبات", "النتائج", "البحث"
+    ]
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(tab_names)
 
 # Training tab
 with tab1:
@@ -1687,3 +1686,16 @@ with tab6:
             if 'rationale' in rec:
                 st.write(f"*Rationale:* {rec['rationale']}")
             st.write("---")
+
+# Add author credits at the bottom of the page
+st.markdown("""---""")
+st.markdown("""
+<div style="text-align: center; background-color: #f0f8f0; padding: 20px; border-radius: 10px; margin-top: 30px;">
+    <h3 style="color: #2E8B57;">Done by:</h3>
+    <p style="font-size: 18px; font-weight: bold;">
+        Fatima Majed<br>
+        Shaikha Rashed<br>
+        Maitha Ali
+    </p>
+</div>
+""", unsafe_allow_html=True)
