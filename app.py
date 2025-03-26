@@ -124,7 +124,7 @@ if 'raw_predictions' not in st.session_state:
 st.sidebar.header("Configuration")
 
 # Plant species selection
-species_options = ['Dwarf Wheat', 'Cherry Tomato', 'Lettuce', 'Space Potato']
+species_options = ['Dwarf Wheat', 'Cherry Tomato', 'Lettuce', 'Potato']
 # Store selected species in session state so it's available across the app
 plant_label = "Select Plant Species"
 selected_species = st.sidebar.selectbox(plant_label, species_options)
